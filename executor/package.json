@@ -9,6 +9,11 @@
     "probe": "node --env-file=../.env probe.mjs"
   },
   "dependencies": {
-    "@noble/curves": "^1.9.7"
+    "@noble/curves": "^1.9.7",
+    "@phala/dcap-qvl-node": "^0.3.3",
+    "@scure/base": "^2.4.0",
+    "jose": "^6.2.15",
+    "near-kit": "^0.20.2",
+    "viem": "^2.57.16"
   }
 }

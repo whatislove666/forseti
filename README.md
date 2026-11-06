@@ -50,6 +50,50 @@ Foundry, Node 20.6+.
 4. With a NEAR AI Cloud key in `.env` (copy `.env.example`), run `cd executor && npm i && npm run probe`.
    It fetches a model attestation with a fresh nonce, sends one completion and checks the model id, both
    hashes and the ed25519 signature.
+5. Run `node --env-file=../.env attest.mjs` in `executor/`. For each panel model you see the checks behind
+   its signing key: Intel TDX quote valid (dcap-qvl), `report_data` binds the key and our fresh nonce, the
+   docker compose hash matches `mr_config`, and the NVIDIA NRAS verdict (shown as SKIP when NVIDIA blocks
+   your network). `--register` adds only fully checked keys to the contract.
+
+### Live on NEAR testnet
+
+The contract runs at [`forseti.testnet`](https://testnet.nearblocks.io/address/forseti.testnet). Its
+Chain Signatures EVM signer (path `verdict-v1`) is `0xD5f2B07870279Fd733eDadFB1e49b9Fe1f3e26e8`.
+
+On Base Sepolia (deployed with `evm/deploy.sh`):
+- `Forseti.sol` verifier: [`0x374541e22a7406E8246D0774E8994fc358232121`](https://sepolia.basescan.org/address/0x374541e22a7406E8246D0774E8994fc358232121), `signer()` returns the address above
+- `DemoMarkets.sol`: [`0x9E6edEA194B835c6D100968FF5E8d5eaac3C8692`](https://sepolia.basescan.org/address/0x9E6edEA194B835c6D100968FF5E8d5eaac3C8692)
+
+The executor (`executor/forseti.mjs`) drives a market end to end. Each step saves a proof bundle in
+`executor/proofs/`: sources, snapshots, the exact request and response, the TEE signature and the tx.
+
+```
+node --env-file=../.env forseti.mjs create markets/berlin.json   # commit the judge, 1 NEAR deposit
+node --env-file=../.env forseti.mjs preview <id>                 # "ask the judge" before the deadline
+node --env-file=../.env forseti.mjs resolve <id>                 # after the deadline: round + verdict
+node --env-file=../.env forseti.mjs appeal <id>                  # optional: bond -> panel
+node --env-file=../.env forseti.mjs panel <id>                   # the three panel models vote
+node --env-file=../.env forseti.mjs finalize <id>                # settle + MPC signature for EVM
+node --env-file=../.env verify-evm.mjs <id>                      # recover the signer like an EVM chain
+node --env-file=../.env relay.mjs <id> <Forseti.sol> [rpc]       # submit the verdict on an EVM chain
+```
+
+Recorded run, market 0 ("Is the current air temperature in Berlin above 0 °C according to Open-Meteo?"),
+Nov 6 2026. Open any transaction on testnet.nearblocks.io to see the arguments and the contract's events:
+
+| Step | Transaction | What the contract checked |
+|---|---|---|
+| Ask the judge (preview) | [`CnkJPPdx…`](https://testnet.nearblocks.io/txns/CnkJPPdxDP6sxZnBNcz7wZQPQDktLqz6UYvXAsLM95DN) | request rebuilt on-chain, ed25519 TEE signature of glm-5.3-flash, quote `"temperature_2m":6.1` found in the snapshot |
+| Open round | [`2eS9B8Cc…`](https://testnet.nearblocks.io/txns/2eS9B8CcSFpLC7rbxRF21HfSayzi43tXMogda8KEMRaj) | deadline passed, nonce drawn from the block's random seed |
+| Verdict YES | [`2nfcusbh…`](https://testnet.nearblocks.io/txns/2nfcusbhQtk1kmE67ioih56FbSWFTXq9yaWrPubxZgfF) | same checks, with the round nonce inside the signed request |
+| Finalize + MPC signature | [`2Yib5c8w…`](https://testnet.nearblocks.io/txns/2Yib5c8wqrhwGEUnvSZs4oY25bpLxgE2wxRde1hdQimD) | challenge period over; `v1.signer-prod.testnet` signed digest `0xcb44c710…631e` |
+
+`verify-evm.mjs 0` recovers `0xD5f2B07870279Fd733eDadFB1e49b9Fe1f3e26e8` from that signature. `relay.mjs`
+then recorded the verdict on Base Sepolia:
+[`0xafea4cdc…`](https://sepolia.basescan.org/tx/0xafea4cdc4283ffebd109f7b30bc2a4785f64631cb439a0cdd53d7026c042bdc6).
+To check it yourself, run
+`cast call 0x374541e22a7406E8246D0774E8994fc358232121 "verdictOf(bytes32)((uint8,uint32))" 0xe2d9227ac516e8a0e766344d21542b4365786c48fb354b3980061eefe25bd1ef --rpc-url https://sepolia.base.org`.
+You see `(1, 1)`: YES, round 1. The proof bundles are in `executor/proofs/`.
 
 ## NEAR technology used
 
