@@ -1,0 +1,66 @@
+[
+  {
+    "file": "m0-r0-preview-z-ai-glm-5-3-flash.json",
+    "market": 0,
+    "round": 0,
+    "kind": "preview",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "16a7ce73124760cf6dd3604591d5aaa7c7ccc5a7663879ca18ed3d555ed25f51"
+  },
+  {
+    "file": "m0-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 0,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "6c6f89116280088562a7f265e971310cb210c9925c71e72a1bad3635da7733f5"
+  },
+  {
+    "file": "m1-r0-preview-z-ai-glm-5-3-flash.json",
+    "market": 1,
+    "round": 0,
+    "kind": "preview",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "df7307455081f86b521ebd2bc602d4c8873fc6259b9165f11ac22e1340d3f8a5"
+  },
+  {
+    "file": "m1-r1-panel-Qwen-Qwen3-6-35B-A3B-FP8.json",
+    "market": 1,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+    "response_sha256": "c2b72cbd130f48082e95e949ae78aa92736a4c7d4855cae63367d57c877f23e9"
+  },
+  {
+    "file": "m1-r1-panel-Qwen-Qwen3-8-27B.json",
+    "market": 1,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.8-27B",
+    "response_sha256": "6e4c2df3eb064cced8e2c0c091b962b8f90f6867c7536af017e5b0f84898c881"
+  },
+  {
+    "file": "m1-r1-panel-z-ai-glm-5-3-flash.json",
+    "market": 1,
+    "round": 1,
+    "kind": "panel",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "4703093d18c32bc345ac67cee60514e6e5e0a12ec249a148970503e3c2460aa6"
+  },
+  {
+    "file": "m1-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 1,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "dbc969c2bb87d3ed8d5a18e9c6aa25e679883ada7ee8ba73dc006222bba23339"
+  },
+  {
+    "file": "m2-r0-preview-z-ai-glm-5-3-flash.json",
+    "market": 2,
+    "round": 0,
+    "kind": "preview",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "d73c5694a48237cbc2fd4d80d967f07221937ee5cf2aa360572aafe5cfab16f4"
+  }
+]

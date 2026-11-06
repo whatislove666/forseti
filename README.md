@@ -55,6 +55,23 @@ Foundry, Node 20.6+.
    docker compose hash matches `mr_config`, and the NVIDIA NRAS verdict (shown as SKIP when NVIDIA blocks
    your network). `--register` adds only fully checked keys to the contract.
 
+### Verify in the browser
+
+The web page (`web/`, no build step, no backend) reads the markets from NEAR and re-runs every check
+in your browser.
+
+1. From the repository root run `python3 -m http.server 5173` and open `http://localhost:5173/web/`.
+   You see the register of markets on `forseti.testnet`.
+2. Open market 1 and click **Verify in this browser**. You see 40 checks fill in one by one and end with
+   "All 40 checks passed". They cover the terms' hash against the commitment, and for each preview,
+   verdict and panel vote: the model's key in the on-chain registry, the response hash, the ed25519 TEE
+   signature, the published snapshots against their on-chain hashes, the request rebuilt by NEAR
+   (`rebuild_request`) against the signed hash, and the quote in the snapshot. Then come the EIP-712
+   digest, the MPC signer derived from `forseti.testnet`, `signer()` and `verdictOf` on Base Sepolia.
+3. Open market 2 (deadline 20 Nov 2026) and use **Ask the judge** with your own NEAR AI Cloud key. The
+   browser fetches the committed source, gets the exact request from the contract, asks
+   `z-ai/glm-5.3-flash` and checks the TEE signature. Today it answers TOO_EARLY, as its rules require.
+
 ### Live on NEAR testnet
 
 The contract runs at [`forseti.testnet`](https://testnet.nearblocks.io/address/forseti.testnet). Its
@@ -128,7 +145,8 @@ Recorded run with an appeal and bets, market 1 ("… above 5 °C …"), Nov 6 20
 
 - `contract/`: NEAR contract and unit tests
 - `evm/`: `Forseti.sol` verifier, `DemoMarkets.sol`, Foundry tests
-- `executor/`: NEAR AI probe (the full executor is next)
+- `executor/`: executor, attestation checks, EVM relay and bets scripts, proof bundles
+- `web/`: the market register and in-browser verification
 
 ## License
 

@@ -11,62 +11,16 @@
 //   node --env-file=../.env forseti.mjs finalize <id>    settle and get the MPC signature
 //   node --env-file=../.env forseti.mjs show <id>
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { ed25519 } from '@noble/curves/ed25519';
 import { Near } from 'near-kit';
+import { snapshot } from './sources.mjs';
 
 const AI = 'https://cloud-api.near.ai/v1';
 const CONTRACT = process.env.FORSETI_CONTRACT || 'forseti.testnet';
 const SIGNER = process.env.NEAR_ACCOUNT_ID;
 const near = new Near({ network: 'testnet', privateKey: process.env.NEAR_PRIVATE_KEY, defaultSignerId: SIGNER });
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
-const MAX_SNAPSHOT_BYTES = 32 * 1024;
-
-// ---------- sources ----------
-
-/** Cleans fetched text before the model sees it: strips invisible and smuggled characters
- *  and defuses anything that looks like our <source> delimiter (prompt injection). */
-export function normalize(text) {
-  let t = text
-    .normalize('NFKC')
-    .replace(/[­​-‏‪-‮⁠-⁤﻿]/g, '') // zero-width, bidi, soft hyphen
-    .replace(/[\u{E0000}-\u{E007F}]/gu, '') // Unicode tag characters ("ASCII smuggling")
-    .replace(/<(\/?)source/gi, '‹$1source')
-    .replace(/[^\S\n]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  const bytes = Buffer.from(t);
-  if (bytes.length > MAX_SNAPSHOT_BYTES) t = bytes.subarray(0, MAX_SNAPSHOT_BYTES).toString().replace(/�$/, '');
-  return t;
-}
-
-// ponytail: regex HTML stripping (drops scripts, styles and elements marked hidden); swap for a
-// real DOM parser if demo pages need CSS selectors.
-function htmlToText(html) {
-  return html
-    .replace(/<(script|style|noscript|template|svg|head)[\s\S]*?<\/\1>/gi, ' ')
-    .replace(/<([a-z0-9]+)[^>]*(\shidden\b|aria-hidden="true"|display:\s*none|visibility:\s*hidden)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
-    .replace(/<br\s*\/?>|<\/(p|div|li|h\d|tr)>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-}
-
-/** `extract` is a JSON path like `$.current` for JSON APIs, or empty for the whole page. */
-export async function snapshot(source) {
-  const res = await fetch(source.url, { headers: { 'User-Agent': 'forseti-executor/0.1', Accept: 'application/json, text/html;q=0.9' } });
-  if (!res.ok) throw new Error(`${source.id}: HTTP ${res.status} from ${source.url}`);
-  const body = await res.text();
-  let text;
-  if (source.extract.startsWith('$')) {
-    let v = JSON.parse(body);
-    for (const k of source.extract.slice(1).match(/[^.[\]]+/g) ?? []) v = v?.[k];
-    if (v === undefined) throw new Error(`${source.id}: ${source.extract} not found`);
-    text = typeof v === 'string' ? v : JSON.stringify(v);
-  } else {
-    text = /html/.test(res.headers.get('content-type') ?? '') ? htmlToText(body) : body;
-  }
-  return normalize(text);
-}
 
 // ---------- NEAR AI ----------
 
@@ -114,10 +68,21 @@ const ns = (minutes) => String(BigInt(Date.now() + minutes * 60_000) * 1_000_000
 const yocto = (near) => String(BigInt(Math.round(Number(near) * 1e6)) * 10n ** 18n);
 const OUTCOME = { 1: 'YES', 2: 'NO', 3: 'INVALID', 4: 'TOO_EARLY' };
 
+/** proofs/index.json lets the web page find the bundle of an on-chain ruling by its response hash. */
+export function writeProofIndex() {
+  const files = readdirSync('proofs').filter((f) => f.startsWith('m') && f.endsWith('.json'));
+  const index = files.map((f) => {
+    const p = JSON.parse(readFileSync(`proofs/${f}`, 'utf8'));
+    return { file: f, market: p.market, round: p.round, kind: p.kind, model: p.model, response_sha256: sha256(p.response) };
+  });
+  writeFileSync('proofs/index.json', JSON.stringify(index, null, 2));
+}
+
 function saveProof(m, kind, model, data) {
   mkdirSync('proofs', { recursive: true });
   const file = `proofs/m${m.commitment.id}-r${m.round}-${kind}-${model.replace(/[^a-z0-9]+/gi, '-')}.json`;
   writeFileSync(file, JSON.stringify({ contract: CONTRACT, market: m.commitment.id, commitment_hash: m.commitment_hash, round: m.round, kind, model, ...data }, null, 2));
+  writeProofIndex();
   return file;
 }
 
@@ -199,6 +164,8 @@ if (cmd === 'create') {
   const m = await market();
   show(m);
   if (m.phase === 'Final') console.log(`  digest ${await view('get_verdict_digest', { id })}`);
+} else if (cmd === 'index') {
+  writeProofIndex();
 } else if (cmd === 'show') {
   show(await market());
 } else {

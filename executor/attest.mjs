@@ -6,6 +6,7 @@
 // Logic follows github.com/nearai/nearai-cloud-verifier (ts/model_verifier.ts).
 // Run: node --env-file=../.env attest.mjs [--register] [model ...]
 import { createHash, randomBytes } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
 import { js_get_collateral, js_verify } from '@phala/dcap-qvl-node';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
@@ -78,8 +79,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     near = new Near({ network: 'testnet', privateKey: process.env.NEAR_PRIVATE_KEY, defaultSignerId: process.env.NEAR_ACCOUNT_ID });
   }
   let allOk = true;
+  const results = [];
   for (const model of models.length ? models : PANEL) {
     const r = await verifyModel(model, apiKey);
+    results.push(r);
     console.log(`\n${model}: ${r.nodes.length} TEE node(s)`);
     for (const n of r.nodes) {
       console.log(`  key ${n.key} (TDX ${n.tdxStatus})`);
@@ -91,5 +94,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       }
     }
   }
+  // The web page shows these results next to each model's key.
+  writeFileSync('attestations.json', JSON.stringify(results, null, 2));
   process.exit(allOk ? 0 : 1);
 }

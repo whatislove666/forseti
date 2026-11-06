@@ -141,6 +141,10 @@ fn happy_path_preview_then_verdict_then_finalize() {
     let _ = c.finalize(0);
     let m = c.get_market(0);
     assert_eq!((m.phase, m.outcome), (Phase::Final, YES));
+    // After finalization anyone can still rebuild the verdict request and match its hash.
+    let ruling = m.proposed.clone().unwrap();
+    let rebuilt = c.rebuild_request(0, MODEL.into(), snaps(), m.round_nonce.clone());
+    assert_eq!(hex(&env::sha256_array(rebuilt.as_bytes())), ruling.request_sha256);
     let digest = c.get_verdict_digest(0);
     assert_eq!(digest, format!("0x{}", hex(&verdict_digest(&unhex32(&m.commitment_hash), YES, 1))));
 }

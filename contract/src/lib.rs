@@ -233,6 +233,12 @@ impl Forseti {
         request_body(&m.commitment, &model, &snapshots, &request_nonce(&m, preview)).unwrap_or_else(|e| env::panic_str(&e))
     }
 
+    /// Rebuilds the request of any past ruling, so anyone can check its `request_sha256`:
+    /// pass the ruling's snapshots and its nonce ("preview" or the round nonce).
+    pub fn rebuild_request(&self, id: u32, model: String, snapshots: Vec<String>, nonce: String) -> String {
+        request_body(&self.market(id).commitment, &model, &snapshots, &nonce).unwrap_or_else(|e| env::panic_str(&e))
+    }
+
     /// Opens a resolution round after the event deadline. Anyone can call it. The round nonce
     /// comes from the block's random seed, so no answer can be prepared in advance.
     pub fn open_round(&mut self, id: u32) {

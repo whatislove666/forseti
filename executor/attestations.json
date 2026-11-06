@@ -1,0 +1,65 @@
+[
+  {
+    "model": "z-ai/glm-5.3-flash",
+    "nonce": "870edfbf11d0486b7ef3989447174d9eae55709facfc6d961ec789ffa39f0ab0",
+    "at": "2026-11-06T15:40:22.822Z",
+    "nodes": [
+      {
+        "key": "5a0210f2442c79355784f9de021985429561da5bacc3a4424b01ac52b7e0caff",
+        "tdxStatus": "UpToDate",
+        "composeHash": "a0e3c6f4f21a60ea3f5c96bc7ef319b03a184ca2049605399275fbcea74e8c5f",
+        "checks": {
+          "Intel TDX quote valid": true,
+          "report_data binds signing key": true,
+          "report_data binds our nonce": true,
+          "GPU evidence uses our nonce": true,
+          "NVIDIA NRAS verdict (signed JWT)": null,
+          "compose hash matches mr_config": true
+        },
+        "ok": true
+      }
+    ]
+  },
+  {
+    "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+    "nonce": "fbfe9c742119ff427e07956783cc4c13b8aa90ca331459080cff166757aed8aa",
+    "at": "2026-11-06T15:40:24.578Z",
+    "nodes": [
+      {
+        "key": "89fb781a9530473a6d3bddd6bb0a0536c8d155058798edae88b19153bd8f4350",
+        "tdxStatus": "UpToDate",
+        "composeHash": "5e513dbd72e1c0f291f748ad06d4dbc1df55659869e649376213ac7b3c9d2e29",
+        "checks": {
+          "Intel TDX quote valid": true,
+          "report_data binds signing key": true,
+          "report_data binds our nonce": true,
+          "GPU evidence uses our nonce": true,
+          "NVIDIA NRAS verdict (signed JWT)": null,
+          "compose hash matches mr_config": true
+        },
+        "ok": true
+      }
+    ]
+  },
+  {
+    "model": "Qwen/Qwen3.8-27B",
+    "nonce": "fcaea818a1f50c1831817da4e86faea1189475e428f61c365d0f6dad04d0863d",
+    "at": "2026-11-06T15:40:26.874Z",
+    "nodes": [
+      {
+        "key": "89154a43a47684742c3d1753252bb6f49f61da9d8c84fc9b1def2df130cb2d93",
+        "tdxStatus": "UpToDate",
+        "composeHash": "31d3b2389e06a4450e342f3a45fdbb5d7ce4c607c359f5b291635548b0b80007",
+        "checks": {
+          "Intel TDX quote valid": true,
+          "report_data binds signing key": true,
+          "report_data binds our nonce": true,
+          "GPU evidence uses our nonce": true,
+          "NVIDIA NRAS verdict (signed JWT)": null,
+          "compose hash matches mr_config": true
+        },
+        "ok": true
+      }
+    ]
+  }
+]

@@ -1,0 +1,138 @@
+/* Forseti: silver paper and Glitnir gold. Gold marks only what has been verified. */
+:root {
+  --paper: #eceff2;
+  --sheet: #f7f8fa;
+  --line: #c9cfd6;
+  --ink: #1c2431;
+  --muted: #5b6574;
+  --gold: #9a6b12;
+  --gold-soft: #f1e6cf;
+  --fail: #a23b3b;
+  --fail-soft: #f4dede;
+  --serif: "Newsreader", Georgia, serif;
+  --sans: "Public Sans", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #141a22;
+    --sheet: #1b232d;
+    --line: #2f3a47;
+    --ink: #e3e7ec;
+    --muted: #97a2b0;
+    --gold: #d9ae5b;
+    --gold-soft: #3a2f1a;
+    --fail: #e07070;
+    --fail-soft: #3d2222;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1rem/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--gold); }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 3px; }
+.muted { color: var(--muted); }
+code, .hash { font-family: var(--mono); font-size: 0.82rem; overflow-wrap: anywhere; }
+
+.masthead, main, .foot { max-width: 1180px; margin: 0 auto; padding-inline: 24px; }
+.masthead { padding-top: 40px; padding-bottom: 28px; display: grid; gap: 6px; }
+.wordmark { font: 600 2.6rem/1 var(--serif); letter-spacing: -0.01em; text-decoration: none; justify-self: start; }
+.tagline { margin: 0; max-width: 60ch; color: var(--muted); font-size: 1.05rem; }
+.network { margin: 6px 0 0; font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
+main { padding-bottom: 64px; outline: none; }
+.foot { padding-top: 24px; padding-bottom: 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+
+/* Docket: a register of cases, one row each */
+.docket { width: 100%; border-collapse: collapse; background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.docket th { text-align: left; font-weight: 500; color: var(--muted); font-size: 0.85rem; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.docket td { padding: 18px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.docket tr:last-child td { border-bottom: 0; }
+.docket tbody tr { cursor: pointer; }
+.docket tbody tr:hover { background: color-mix(in srgb, var(--gold-soft) 45%, transparent); }
+.docket .no { font: 500 1.1rem var(--serif); color: var(--muted); width: 4ch; }
+.docket .q { font: 500 1.15rem/1.35 var(--serif); }
+.docket .q a { text-decoration: none; }
+.docket .when { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+
+.status { display: inline-block; font-size: 0.85rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.status.final { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); }
+
+/* Case page: the case on the left, the chain of checks on the right */
+.case { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 48px; align-items: start; }
+.back { display: inline-block; margin-bottom: 18px; color: var(--muted); font-size: 0.9rem; }
+.case h1 { font: 500 clamp(1.9rem, 3.4vw, 2.6rem)/1.15 var(--serif); margin: 10px 0 14px; letter-spacing: -0.01em; max-width: 24ch; }
+.case .rules { font: 400 1.1rem/1.6 var(--serif); max-width: 62ch; margin: 0 0 28px; }
+.case h2 { font: 600 1.25rem var(--serif); margin: 40px 0 14px; }
+
+.terms { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 10px 20px; margin: 0; padding: 20px; background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; }
+.terms dt { color: var(--muted); font-size: 0.9rem; }
+.terms dd { margin: 0; min-width: 0; }
+.terms ul { margin: 0; padding-left: 1.1em; }
+details.prompt { margin-top: 12px; }
+details.prompt summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+details.prompt p { font: 400 1rem/1.6 var(--serif); max-width: 62ch; }
+
+/* Rulings, in the order they happened */
+.timeline { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
+.timeline > li { position: relative; padding: 0 0 26px 24px; }
+.timeline > li::before { content: ""; position: absolute; left: -5px; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--paper); border: 1px solid var(--muted); }
+.timeline > li.key::before { background: var(--gold); border-color: var(--gold); }
+.event { font-weight: 600; }
+.event .when { font-weight: 400; color: var(--muted); font-size: 0.88rem; margin-left: 8px; }
+.verdict-word { font: 600 1.05rem var(--serif); }
+.timeline blockquote { margin: 8px 0; padding: 8px 14px; border-left: 2px solid var(--gold); font: 400 1rem/1.5 var(--mono); font-size: 0.85rem; background: var(--sheet); border-radius: 0 6px 6px 0; overflow-wrap: anywhere; }
+.timeline .reason { margin: 4px 0; max-width: 62ch; }
+.timeline .meta { color: var(--muted); font-size: 0.85rem; }
+
+/* Chain of checks: the gold thread fills as each link passes */
+.chain { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; background: var(--sheet); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+.chain h2 { margin-top: 0; }
+.chain p { margin: 0 0 14px; color: var(--muted); font-size: 0.92rem; }
+button { font: 600 0.95rem var(--sans); color: var(--paper); background: var(--ink); border: 0; border-radius: 8px; padding: 11px 16px; cursor: pointer; }
+button:disabled { opacity: 0.5; cursor: progress; }
+.checks { list-style: none; margin: 18px 0 0; padding: 0; position: relative; }
+.checks::before { content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+.checks::after { content: ""; position: absolute; left: 7px; top: 6px; width: 2px; height: var(--fill, 0%); background: var(--gold); transition: height 0.35s ease; }
+.checks li { position: relative; padding: 4px 0 10px 28px; font-size: 0.92rem; }
+.checks li::before { content: ""; position: absolute; left: 2px; top: 9px; width: 12px; height: 12px; border-radius: 50%; background: var(--sheet); border: 2px solid var(--line); z-index: 1; }
+.checks li.pass::before { background: var(--gold); border-color: var(--gold); }
+.checks li.fail::before { background: var(--fail); border-color: var(--fail); }
+.checks li.skip::before { border-style: dashed; }
+.checks li.group { padding-top: 12px; font-weight: 600; }
+.checks li.group::before { display: none; }
+.checks li.fail { color: var(--fail); }
+.checks .detail { display: block; color: var(--muted); font-size: 0.82rem; overflow-wrap: anywhere; }
+.summary { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-weight: 600; }
+.summary.pass { background: var(--gold-soft); color: var(--gold); }
+.summary.fail { background: var(--fail-soft); color: var(--fail); }
+
+.ask { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.ask label { display: block; font-size: 0.9rem; margin-bottom: 6px; }
+.ask input { width: 100%; font: 400 0.9rem var(--mono); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); margin-bottom: 10px; }
+.ask .result { margin-top: 14px; }
+
+.keys { display: grid; gap: 12px; }
+.keys article { padding: 14px 16px; background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; }
+.keys h3 { margin: 0 0 4px; font: 600 1rem var(--sans); }
+.keys ul { margin: 8px 0 0; padding-left: 1.1em; font-size: 0.88rem; }
+
+.error { color: var(--fail); background: var(--fail-soft); padding: 12px 14px; border-radius: 8px; }
+
+@media (max-width: 900px) {
+  .case { grid-template-columns: 1fr; gap: 28px; }
+  .chain { position: static; }
+  .terms { grid-template-columns: 1fr; gap: 2px 0; }
+  .terms dd { margin-bottom: 10px; }
+  .docket .when, .docket th.when { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .checks::after { transition: none; } }
