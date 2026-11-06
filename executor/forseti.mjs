@@ -178,7 +178,8 @@ if (cmd === 'create') {
   let m = await market();
   if (m.phase === 'Open') {
     console.log(`  open_round tx ${(await call('open_round', { id })).hash}`);
-    m = await market();
+    // The RPC node can lag a block behind our own transaction; wait until the round shows up.
+    for (let i = 0; i < 10 && (m = await market()).phase === 'Open'; i++) await new Promise((ok) => setTimeout(ok, 1000));
   }
   await rule(m, 'verdict', m.commitment.params.model);
   show(await market());

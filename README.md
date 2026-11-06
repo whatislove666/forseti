@@ -76,6 +76,7 @@ node --env-file=../.env forseti.mjs panel <id>                   # the three pan
 node --env-file=../.env forseti.mjs finalize <id>                # settle + MPC signature for EVM
 node --env-file=../.env verify-evm.mjs <id>                      # recover the signer like an EVM chain
 node --env-file=../.env relay.mjs <id> <Forseti.sol> [rpc]       # submit the verdict on an EVM chain
+node --env-file=../.env bets.mjs open|bet|status|claim <id> ...  # demo bets on Base Sepolia
 ```
 
 Recorded run, market 0 ("Is the current air temperature in Berlin above 0 °C according to Open-Meteo?"),
@@ -94,6 +95,19 @@ then recorded the verdict on Base Sepolia:
 To check it yourself, run
 `cast call 0x374541e22a7406E8246D0774E8994fc358232121 "verdictOf(bytes32)((uint8,uint32))" 0xe2d9227ac516e8a0e766344d21542b4365786c48fb354b3980061eefe25bd1ef --rpc-url https://sepolia.base.org`.
 You see `(1, 1)`: YES, round 1. The proof bundles are in `executor/proofs/`.
+
+Recorded run with an appeal and bets, market 1 ("… above 5 °C …"), Nov 6 2026:
+
+| Step | Transaction | Result |
+|---|---|---|
+| Two wallets bet on Base Sepolia (`executor/bets.mjs`) | [YES 0.002 ETH](https://sepolia.basescan.org/tx/0x9ec4d1a3eeef30249425274e98c2d053b1c8e2b59c28655021f2a7abc1ee15a4), [NO 0.001 ETH](https://sepolia.basescan.org/tx/0xb1423657b0428939649ec0e670fc7b906126468daeb10ba21e3f98428a9dba76) | betting closes at the NEAR deadline |
+| Ask the judge | [`6zGVPDJA…`](https://testnet.nearblocks.io/txns/6zGVPDJAMVr5AnYYRc19nR423pGKYq5fQoWQqtCYYqAe) | YES, quote `"temperature_2m":6.2` |
+| Verdict | [`AGhrVvF3…`](https://testnet.nearblocks.io/txns/AGhrVvF3x9TxubSy54bW3NxQ5hYtn1dNrp787eGFTW7D) | proposed YES |
+| Appeal by `appellant.forseti.testnet`, 0.5 NEAR bond | [`3t2dk1xj…`](https://testnet.nearblocks.io/txns/3t2dk1xj1xbSkAmAPYtrsBwETNqHhaptzCZ6oJZUpCmb) | market goes to the committed panel |
+| Panel votes | [glm-5.3-flash](https://testnet.nearblocks.io/txns/BdhcUy6VgjJxm2zZK4LgA3aBBn7sggWH4qK3hTAMdQWC), [Qwen3.6-35B](https://testnet.nearblocks.io/txns/Bk9uh7YaQGE2bhD9FgMxdGoTrkeJpeuAwjs6m9wJBLH6), [Qwen3.8-27B](https://testnet.nearblocks.io/txns/9J5siUMx8PBvG8Z1RPw8dfDtv7nvDWtHbJKE1comZCNR) | 3 × YES, each checked against that model's own TEE key |
+| Finalize + MPC signature | [`31EBQcpN…`](https://testnet.nearblocks.io/txns/31EBQcpNSzYnJ1Stkv4G3ZsVN8zXzFF5RmhcXsd1JAPa) | YES upheld, the bond goes to the market creator |
+| Relay to Base Sepolia | [`0xf67f90bb…`](https://sepolia.basescan.org/tx/0xf67f90bb143f88ea9a1ba21c4bd54ec2726fdeb0bf11a24a82a8ced1d8e941a0) | `verdictOf` = YES |
+| Winner claims | [`0x381ca26d…`](https://sepolia.basescan.org/tx/0x381ca26d9e58098a4593bc4a6c4ec5f78a4a6a1b8fc1e672441fa20811a73dcf) | the YES bettor gets the whole 0.003 ETH pool; the NO bettor's claim reverts |
 
 ## NEAR technology used
 
