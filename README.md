@@ -126,6 +126,23 @@ Recorded run with an appeal and bets, market 1 ("… above 5 °C …"), Nov 6 20
 | Relay to Base Sepolia | [`0xf67f90bb…`](https://sepolia.basescan.org/tx/0xf67f90bb143f88ea9a1ba21c4bd54ec2726fdeb0bf11a24a82a8ced1d8e941a0) | `verdictOf` = YES |
 | Winner claims | [`0x381ca26d…`](https://sepolia.basescan.org/tx/0x381ca26d9e58098a4593bc4a6c4ec5f78a4a6a1b8fc1e672441fa20811a73dcf) | the YES bettor gets the whole 0.003 ETH pool; the NO bettor's claim reverts |
 
+Recorded run where the panel overturns a forged verdict, market 3 ("… above 3 °C …"), Nov 6 2026. It plays
+out the main trust assumption below: `executor/demo/dishonest-executor.mjs`, run as `shady.forseti.testnet`,
+replaces 6.3 °C with 1.8 °C in the snapshot before asking the judge.
+
+| Step | Transaction | Result |
+|---|---|---|
+| Bets on Base Sepolia | [YES 0.001 ETH](https://sepolia.basescan.org/tx/0x7a42147bc4cefa3bbe8a53e918253bc85aef3a9aa5f6124685777126c4eed549), [NO 0.002 ETH](https://sepolia.basescan.org/tx/0xcaa4e97b716311febd057f904f72624e636cd69ae9705843ee9da17038d79d46) | |
+| Forged verdict by `shady.forseti.testnet` | [`2hPxbnb9…`](https://testnet.nearblocks.io/txns/2hPxbnb9aHqCFYWaZzgEWqcCds5izCR2Zf5Br3Xo8wFN) | the judge answers NO from the forged snapshot; the contract accepts it, since signature and quote match what the judge saw |
+| Appeal by `appellant.forseti.testnet` | [`F8yeNfnp…`](https://testnet.nearblocks.io/txns/F8yeNfnpsg3CuxBHqtpD9baMvrJjDsqAzp2T4uczSLBY) | 0.5 NEAR bond, market goes to the panel |
+| Panel votes on the real snapshot | [glm-5.3-flash](https://testnet.nearblocks.io/txns/5B9erDw59GykUVcxpxo3reie99p3x8m2RWFQPnKj6LGw), [Qwen3.6-35B](https://testnet.nearblocks.io/txns/7xNkbAdj9ooep8byWNnifkUCs1edjQbRi8Kja6e4cnK5), [Qwen3.8-27B](https://testnet.nearblocks.io/txns/36JH2bd1QiUhFNZp9P7T5MxHTWDwypHpypbdtuf4jooh) | 3 × YES |
+| Finalize + MPC signature | [`EUC7XUys…`](https://testnet.nearblocks.io/txns/EUC7XUysySTa7hJYEpazpsGkMSK8hF2xTCTUuZjKofsM) | YES: the verdict is overturned and the bond goes back to the appellant |
+| Relay and claim | [relay](https://sepolia.basescan.org/tx/0x8f0b133eda138b78d37c44331f881ccd7b0335d3f6a2312f4f624552c1229de1), [claim](https://sepolia.basescan.org/tx/0xe3fdb4ff9cdc432d06a80f36f942bdff9bd635655968df2ecf7e985a9ec7ae20) | the YES bettor takes the 0.003 ETH pool |
+
+On the web page, market 3 shows the forged verdict next to the panel votes. **Verify in this browser** passes
+all 33 checks and adds two notes: the verdict's bundle is marked as forged, and its snapshot hash differs from
+the one the panel used.
+
 ## NEAR technology used
 
 - **NEAR AI Cloud** (TEE inference): models run in Intel TDX + NVIDIA TEE and sign every response.
@@ -136,7 +153,8 @@ Recorded run with an appeal and bets, market 1 ("… above 5 °C …"), Nov 6 20
 ## Trust assumptions (MVP)
 
 - The executor chooses the snapshots. Each ruling stores their sha256, and conflicting signed answers or
-  appeals go to the panel, but a dishonest snapshot is not detected on-chain.
+  appeals go to the panel, but a dishonest snapshot is not detected on-chain. Market 3 above shows the
+  attack and how an appeal corrects it.
 - The contract owner registers model TEE keys after checking attestation off-chain.
 - Whoever can upgrade the NEAR contract can sign any verdict for every chain. After deployment the
   contract's full-access keys must be removed or put behind a timelock.

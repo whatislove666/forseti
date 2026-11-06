@@ -54,9 +54,9 @@ export async function judge(model, request) {
 // ---------- contract ----------
 
 // Optimistic finality so a view right after our own transaction already sees it.
-const view = (method, args) => near.view(CONTRACT, method, args, { finality: 'optimistic' });
+export const view = (method, args) => near.view(CONTRACT, method, args, { finality: 'optimistic' });
 
-async function call(method, args, { gas = '100 Tgas', deposit = '0 NEAR' } = {}) {
+export async function call(method, args, { gas = '100 Tgas', deposit = '0 NEAR' } = {}) {
   const r = await near.transaction(SIGNER).functionCall(CONTRACT, method, args, { gas, attachedDeposit: deposit }).send();
   const failure = r.status?.Failure ?? r.receipts_outcome?.find((o) => o.outcome.status?.Failure)?.outcome.status.Failure;
   if (failure) throw new Error(`${method} failed: ${JSON.stringify(failure).slice(0, 400)}`);
@@ -86,10 +86,11 @@ function saveProof(m, kind, model, data) {
   return file;
 }
 
-/** Fetch sources, build the request on-chain, ask the model, submit, save the proof bundle. */
-async function rule(m, kind, model) {
+/** Fetch sources, build the request on-chain, ask the model, submit, save the proof bundle.
+ *  `forged` replaces the real snapshots: only demo/dishonest-executor.mjs uses it. */
+export async function rule(m, kind, model, forged) {
   const sources = m.commitment.params.sources;
-  const snapshots = await Promise.all(sources.map(snapshot));
+  const snapshots = forged ?? (await Promise.all(sources.map(snapshot)));
   const request = await view('build_request', { id: m.commitment.id, model, snapshots, preview: kind === 'preview' });
   const t0 = Date.now();
   const j = await judge(model, request);
@@ -97,11 +98,11 @@ async function rule(m, kind, model) {
   console.log(`  ${model}: ${answer.outcome} (${Date.now() - t0} ms)\n    quote: ${answer.quote}\n    reason: ${answer.reason}`);
   const args = { id: m.commitment.id, snapshots, response: j.response, signer: j.signer, signature: j.signature };
   const { hash: tx } = kind === 'preview' ? await call('submit_preview', args) : await call('submit_ruling', { ...args, model });
-  const file = saveProof(m, kind, model, { tx, sources, snapshots, request, ...j, answer });
+  const file = saveProof(m, kind, model, { tx, ...(forged && { forged_by_dishonest_executor: true }), sources, snapshots, request, ...j, answer });
   console.log(`    tx ${tx}\n    proof ${file}`);
 }
 
-function show(m) {
+export function show(m) {
   const p = m.commitment.params;
   const t = (x) => new Date(Number(BigInt(x) / 1_000_000n)).toISOString();
   console.log(`market ${m.commitment.id} ${m.commitment_hash}\n  ${p.question}\n  phase ${m.phase}, round ${m.round}, deadline ${t(p.resolve_after)}`);
@@ -113,6 +114,7 @@ function show(m) {
 
 // ---------- CLI ----------
 
+if (import.meta.url === `file://${process.argv[1]}`) {
 const [cmd, arg] = process.argv.slice(2);
 const id = Number(arg);
 const market = () => view('get_market', { id });
@@ -170,4 +172,5 @@ if (cmd === 'create') {
   show(await market());
 } else {
   console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(0, 13).join('\n'));
+}
 }

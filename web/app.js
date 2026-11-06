@@ -118,10 +118,10 @@ async function market(id) {
             <div><span class="verdict-word">${OUTCOME[r.outcome]}</span> <span class="muted">from ${esc(r.model)}</span></div>
             ${r.quote ? `<blockquote>${esc(r.quote)}</blockquote>` : ''}
             <p class="reason">${esc(r.reason)}</p>
-            <div class="meta">Signed in a TEE by key <span class="hash">${short(r.signer)}</span>, submitted by ${esc(r.submitted_by)}</div>
-          </li>`).join('')}
-          ${m.appellant ? `<li><div class="event">Appeal</div><div class="meta">${esc(m.appellant)} posted the bond, so the panel decides.</div></li>` : ''}
-          ${m.phase === 'Final' ? `<li class="key"><div class="event">Final: <span class="verdict-word">${OUTCOME[m.outcome]}</span></div><div class="meta">${m.evm_signature ? 'Signed for EVM chains by the NEAR MPC network.' : 'Waiting for the MPC signature.'}</div></li>` : ''}
+            <div class="meta">Signed in a TEE by key <span class="hash">${short(r.signer)}</span>, submitted by ${esc(r.submitted_by)}, snapshot <span class="hash">${short(r.snapshot_sha256.join(), 5)}</span></div>
+          </li>${r === m.proposed && m.appellant ? `
+          <li><div class="event">Appeal</div><div class="meta">${esc(m.appellant)} posted the bond, so the panel decides.</div></li>` : ''}`).join('')}
+          ${m.phase === 'Final' ? `<li class="key"><div class="event">Final: <span class="verdict-word">${OUTCOME[m.outcome]}</span></div><div class="meta">${m.proposed && m.proposed.outcome !== m.outcome ? `The panel overturned the verdict ${OUTCOME[m.proposed.outcome]}${m.appellant ? `, so the bond went back to ${esc(m.appellant)}` : ''}. ` : ''}${m.evm_signature ? 'Signed for EVM chains by the NEAR MPC network.' : 'Waiting for the MPC signature.'}</div></li>` : ''}
         </ol>` : `<p class="muted">No rulings yet. Before the deadline anyone can ask the judge.</p>`}
 
         <h2>The judges' keys</h2>
@@ -195,6 +195,9 @@ async function verify(m, button) {
       return [a.outcome === OUTCOME[r.outcome] && (a.quote ?? '').startsWith(r.quote.slice(0, 50))];
     });
     const bundle = await proofFor(r.response_sha256);
+    if (bundle?.forged_by_dishonest_executor) {
+      await check('Bundle is marked as forged by the dishonest-executor demo', async () => [null, 'The snapshot was edited before the judge saw it. The checks below still pass: they prove what the judge saw, not that it was true.']);
+    }
     if (!bundle) {
       await check('Source snapshots', async () => [null, 'Not published for this ruling; the checks above use on-chain data only.']);
       continue;
@@ -213,6 +216,17 @@ async function verify(m, button) {
         return [i >= 0 && normalizeWs(bundle.snapshots[i]).includes(normalizeWs(r.quote)), `source "${r.source}"`];
       });
     }
+  }
+
+  const round = [m.proposed, m.challenge, ...m.panel_votes].filter(Boolean);
+  if (round.length > 1) {
+    group('Evidence across the round');
+    await check('Every ruling in the round saw the same snapshots', async () => {
+      const seen = [...new Set(round.map((r) => r.snapshot_sha256.join()))];
+      if (seen.length === 1) return [true, short(seen[0], 5)];
+      const by = round.map((r) => `${r === m.proposed ? 'verdict' : r.model}: ${short(r.snapshot_sha256.join(), 5)}`).join('; ');
+      return [null, `They differ (${by}). The panel's majority decides, which is how a bad snapshot gets corrected.`];
+    });
   }
 
   if (m.phase === 'Final' && m.evm_signature) {
@@ -241,7 +255,7 @@ async function verify(m, button) {
 
   summary.innerHTML = failed
     ? `<div class="summary fail">${failed} of ${total} checks failed.</div>`
-    : `<div class="summary pass">All ${passed} checks passed in your browser.</div>`;
+    : `<div class="summary pass">All ${passed} checks passed in your browser.${list.querySelector('.skip') ? ' Read the notes with hollow markers.' : ''}</div>`;
   button.disabled = false;
   button.textContent = 'Verify again';
 }

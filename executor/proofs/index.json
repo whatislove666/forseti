@@ -62,5 +62,37 @@
     "kind": "preview",
     "model": "z-ai/glm-5.3-flash",
     "response_sha256": "d73c5694a48237cbc2fd4d80d967f07221937ee5cf2aa360572aafe5cfab16f4"
+  },
+  {
+    "file": "m3-r1-panel-Qwen-Qwen3-6-35B-A3B-FP8.json",
+    "market": 3,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+    "response_sha256": "f18913f498732769c432e7c9670edf16cb6ad4c3cc584ae3d7aed1663cdacaed"
+  },
+  {
+    "file": "m3-r1-panel-Qwen-Qwen3-8-27B.json",
+    "market": 3,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.8-27B",
+    "response_sha256": "cad94c3387417b6cdee1a693a2f21b70094f234e9d3645f52f78598c1c26d05b"
+  },
+  {
+    "file": "m3-r1-panel-z-ai-glm-5-3-flash.json",
+    "market": 3,
+    "round": 1,
+    "kind": "panel",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "0ace5b05b752956cf1fb6d737c27b1fcc0ef049bd4054fcbe22b95cec06f5677"
+  },
+  {
+    "file": "m3-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 3,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "3640fe8d0b97bbfac3922297b0d6b64d6489c473207d6153ae9cd87df0ebc5bd"
   }
 ]
