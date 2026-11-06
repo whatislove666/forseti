@@ -90,7 +90,7 @@ details.prompt p { font: 400 1rem/1.6 var(--serif); max-width: 62ch; }
 .event { font-weight: 600; }
 .event .when { font-weight: 400; color: var(--muted); font-size: 0.88rem; margin-left: 8px; }
 .verdict-word { font: 600 1.05rem var(--serif); }
-.timeline blockquote { margin: 8px 0; padding: 8px 14px; border-left: 2px solid var(--gold); font: 400 1rem/1.5 var(--mono); font-size: 0.85rem; background: var(--sheet); border-radius: 0 6px 6px 0; overflow-wrap: anywhere; }
+.timeline blockquote, .ask blockquote { margin: 8px 0; padding: 8px 14px; border-left: 2px solid var(--gold); font: 400 1rem/1.5 var(--mono); font-size: 0.85rem; background: var(--sheet); border-radius: 0 6px 6px 0; overflow-wrap: anywhere; }
 .timeline .reason { margin: 4px 0; max-width: 62ch; }
 .timeline .meta { color: var(--muted); font-size: 0.85rem; }
 
@@ -100,10 +100,12 @@ details.prompt p { font: 400 1rem/1.6 var(--serif); max-width: 62ch; }
 .chain p { margin: 0 0 14px; color: var(--muted); font-size: 0.92rem; }
 button { font: 600 0.95rem var(--sans); color: var(--paper); background: var(--ink); border: 0; border-radius: 8px; padding: 11px 16px; cursor: pointer; }
 button:disabled { opacity: 0.5; cursor: progress; }
-.checks { list-style: none; margin: 18px 0 0; padding: 0; position: relative; }
-.checks::before { content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
-.checks::after { content: ""; position: absolute; left: 7px; top: 6px; width: 2px; height: var(--fill, 0%); background: var(--gold); transition: height 0.35s ease; }
+.checks { list-style: none; margin: 18px 0 0; padding: 0; }
 .checks li { position: relative; padding: 4px 0 10px 28px; font-size: 0.92rem; }
+/* The thread: each link runs from its dot to the next one and turns gold once that check passes. */
+.checks li::after { content: ""; position: absolute; left: 7px; top: 15px; width: 2px; height: 100%; background: var(--line); transition: background-color 0.35s ease; }
+.checks li:last-child::after { display: none; }
+.checks li.pass::after { background: var(--gold); }
 .checks li::before { content: ""; position: absolute; left: 2px; top: 9px; width: 12px; height: 12px; border-radius: 50%; background: var(--sheet); border: 2px solid var(--line); z-index: 1; }
 .checks li.pass::before { background: var(--gold); border-color: var(--gold); }
 .checks li.fail::before { background: var(--fail); border-color: var(--fail); }
@@ -135,4 +137,4 @@ button:disabled { opacity: 0.5; cursor: progress; }
   .terms dd { margin-bottom: 10px; }
   .docket .when, .docket th.when { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .checks::after { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .checks li::after { transition: none; } }

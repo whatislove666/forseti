@@ -172,7 +172,6 @@ async function verify(m, button) {
     li.className = ok === null ? 'skip' : ok ? 'pass' : 'fail';
     if (detail) li.insertAdjacentHTML('beforeend', `<span class="detail">${esc(detail)}</span>`);
     total += ok === null ? 0 : 1; passed += ok ? 1 : 0; failed += ok === false ? 1 : 0;
-    list.style.setProperty('--fill', `${(100 * list.querySelectorAll('.pass').length) / list.querySelectorAll('li:not(.group)').length}%`);
   };
 
   group('The terms');
@@ -300,9 +299,9 @@ async function ask(e, m) {
     ];
     out.innerHTML = `
       <p><span class="verdict-word">${esc(answer.outcome)}</span> <span class="muted">from ${esc(p.model)}</span></p>
-      ${answer.quote ? `<blockquote class="hash">${esc(answer.quote)}</blockquote>` : ''}
+      ${answer.quote ? `<blockquote>${esc(answer.quote)}</blockquote>` : ''}
       <p>${esc(answer.reason)}</p>
-      <ol class="checks" style="--fill:${(100 * checks.filter((c) => c[1]).length) / checks.length}%">${checks.map(([t, ok]) => `<li class="${ok ? 'pass' : 'fail'}">${esc(t)}</li>`).join('')}</ol>
+      <ol class="checks">${checks.map(([t, ok]) => `<li class="${ok ? 'pass' : 'fail'}">${esc(t)}</li>`).join('')}</ol>
       <p class="muted">This answer is not binding. To record a preview on-chain run <code>node --env-file=../.env forseti.mjs preview ${m.commitment.id}</code>.</p>`;
   } catch (err) {
     out.innerHTML = `<p class="error">${esc(err.message)}</p>`;
