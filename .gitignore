@@ -1,0 +1,7 @@
+.env
+node_modules/
+target/
+dist/
+out/
+cache/
+.DS_Store

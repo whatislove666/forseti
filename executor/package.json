@@ -1,0 +1,14 @@
+{
+  "name": "forseti-executor",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "probe": "node --env-file=../.env probe.mjs"
+  },
+  "dependencies": {
+    "@noble/curves": "^1.9.7"
+  }
+}
