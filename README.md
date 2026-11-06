@@ -8,12 +8,17 @@ TEE signature over that request and the answer, and checks that the quoted evide
 snapshot. The final verdict is signed once through Chain Signatures, and any EVM chain verifies it with
 `ecrecover`.
 
-Built at NEAR HACKATHON (Nov 1–14, 2026). Work in progress: this README only describes what runs today.
+Built at NEAR HACKATHON (Nov 1–14, 2026). Everything below runs today on NEAR testnet and Base Sepolia.
+
+Docs: [overview](docs/overview.md), [integrate Forseti into a market](docs/integrate.md),
+[write a market](docs/write-a-market.md), [how a verdict is checked](docs/verification.md),
+[reference](docs/reference.md) and the [roadmap](docs/roadmap.md). The web page shows the same files
+under **Docs** and **Roadmap**.
 
 ## Problem
 
-Prediction markets settle disputes with token votes (UMA on Polymarket): large holders vote, often with
-positions in the same market. Models can already settle most of these questions, but traders need to know
+Crypto prediction markets such as Polymarket settle disputes with token votes (UMA): the holders who vote
+can also trade on the same platform. Models can already settle most of these questions, but traders need to know
 in advance which model will judge, on what sources, and be able to check afterwards that it really did.
 
 ## How it works
@@ -27,24 +32,33 @@ in advance which model will judge, on what sources, and be able to check afterwa
 5. `submit_ruling` rebuilds the request, checks the signature against the model's registered TEE keys,
    parses the answer and checks that the quote is in the cited snapshot.
 6. During the challenge period, an appeal (with a bond) or a second signed answer with a different outcome
-   sends the market to the committed panel. The panel decides by majority.
-7. `finalize` settles the outcome (YES=1, NO=2, INVALID=3) and asks the MPC signer for an ECDSA signature
+   sends the market to the committed panel. A TOO_EARLY answer is proposed like any other; if nobody
+   challenges it, anyone opens a new round.
+7. The panel votes for one more challenge period, each model with the nonce `<round nonce>:panel`. A
+   second signed vote for a seat with a different outcome contests it, and a contested seat counts as
+   INVALID. After the window the majority decides.
+8. `finalize` settles the outcome (YES=1, NO=2, INVALID=3) and asks the MPC signer for an ECDSA signature
    over one EIP-712 digest: domain `{name:"Forseti", version:"1"}`, no chainId,
    `Verdict(bytes32 commitmentHash,uint8 outcome,uint32 round)`.
-8. Anyone relays the signature to `Forseti.sol` on an EVM chain. `DemoMarkets.sol` pays out from it.
+9. Anyone relays the signature to `Forseti.sol` on an EVM chain. `DemoMarkets.sol` pays out from it.
 
 ## Try it
 
 Requirements: Rust (the toolchain in `contract/rust-toolchain.toml` installs itself through rustup),
-Foundry, Node 20.6+.
+Foundry, Node 20.6+. Steps 1–3 and the browser checks need no keys; steps 4–5 and **Ask the judge** need a
+NEAR AI Cloud key.
 
-1. Run `cd contract && cargo test`. You see 17 passing tests: the happy path (preview, verdict, finalize),
+1. Run `cd contract && cargo test`. You see 28 passing tests: the happy path (preview, verdict, finalize),
    rejection of a tampered response, a key of another model, an answer signed for other snapshots, a quote
-   that is not in the snapshot and a snapshot that tries to escape its `<source>` tag, plus the panel,
-   appeal, TOO_EARLY and expiry paths.
-2. Run `cd evm && forge test`. You see 9 passing tests: the verifier accepts the MPC signature (recovery
+   that is not in the snapshot or too short to be evidence, and a snapshot that tries to escape its
+   `<source>` tag in any case or spacing; the panel, appeal, TOO_EARLY and expiry paths; and one test per
+   attack found in our audit: a proposal replayed as a panel vote, a dispute settled inside the panel's
+   window, a forged panel majority (contested seats make it INVALID), a stalling TOO_EARLY, a verdict after
+   `resolve_by` and a replayed preview.
+2. Run `cd evm && forge test`. You see 15 passing tests: the verifier accepts the MPC signature (recovery
    id 0/1 or 27/28), rejects a changed outcome, another signer and a second write, and the demo market pays
-   winners or refunds on INVALID.
+   winners or refunds on INVALID, refuses bets once a verdict exists and markets opened by anyone but the
+   operator, and refunds stakes 7 days after the close when no verdict arrives.
 3. Both test suites assert the same EIP-712 digest vector, produced independently with viem's
    `hashTypedData`, so the NEAR contract and the EVM verifier agree on the bytes that get signed.
 4. With a NEAR AI Cloud key in `.env` (copy `.env.example`), run `cd executor && npm i && npm run probe`.
@@ -53,21 +67,33 @@ Foundry, Node 20.6+.
 5. Run `node --env-file=../.env attest.mjs` in `executor/`. For each panel model you see the checks behind
    its signing key: Intel TDX quote valid (dcap-qvl), `report_data` binds the key and our fresh nonce, the
    docker compose hash matches `mr_config`, and the NVIDIA NRAS verdict (shown as SKIP when NVIDIA blocks
-   your network). `--register` adds only fully checked keys to the contract.
+   your network). `--register` adds keys with no failed check, and refuses a key whose NVIDIA check was
+   skipped unless you add `--allow-gpu-skip`. The three keys registered today were registered with the
+   NVIDIA check skipped, because NVIDIA's service refused our network.
 
 ### Verify in the browser
 
 The web page (`web/`, no build step, no backend) reads the markets from NEAR and re-runs every check
-in your browser.
+in your browser. It uses the Forseti design system in `web/design/`: every market has a seal drawn from
+its commitment hash, and the page shows the answer first, how it was decided second, and the technical
+details under **For auditors**.
 
-1. From the repository root run `python3 -m http.server 5173` and open `http://localhost:5173/web/`.
-   You see the register of markets on `forseti.testnet`.
-2. Open market 1 and click **Verify in this browser**. You see 40 checks fill in one by one and end with
-   "All 40 checks passed". They cover the terms' hash against the commitment, and for each preview,
-   verdict and panel vote: the model's key in the on-chain registry, the response hash, the ed25519 TEE
-   signature, the published snapshots against their on-chain hashes, the request rebuilt by NEAR
-   (`rebuild_request`) against the signed hash, and the quote in the snapshot. Then come the EIP-712
-   digest, the MPC signer derived from `forseti.testnet`, `signer()` and `verdictOf` on Base Sepolia.
+1. From the repository root run `python3 -m http.server 5173 --bind 127.0.0.1` and open
+   `http://localhost:5173/web/`. Keep the `--bind`: the server shares the whole folder, including your
+   `.env`, and without it anyone on your network could read it.
+   You see the overview: what Forseti does, how a market goes from sealed to final, what is checked and
+   what is still trusted, live numbers read from the contract, and the story of market 3. Click
+   **Verify** and you see the register of markets on `forseti.testnet`, each with its seal
+   and status.
+2. Open market 1 and click **Check it yourself**. You see 47 checks fill in one by one and end with
+   "All 47 checks passed in your browser". Click **Show details** for the exact values. They cover the
+   terms' hash against the commitment, and for each preview, verdict and panel vote: that the sealed model
+   (or the model sealed for that panel seat) answered, its key in the on-chain registry, the response hash,
+   the ed25519 TEE signature, that the recorded outcome, source, quote and reason are the signed ones, the
+   published snapshots against their on-chain hashes, the request rebuilt by NEAR (`rebuild_request`)
+   against the signed hash, and the quote in the snapshot. Then the final outcome is recomputed from the
+   record, and come the EIP-712 digest, the MPC signer derived from `forseti.testnet`, `signer()` and
+   `verdictOf` on Base Sepolia. A check the network could not answer shows as not checked, never as passed.
 3. Open market 2 (deadline 20 Nov 2026) and use **Ask the judge** with your own NEAR AI Cloud key. The
    browser fetches the committed source, gets the exact request from the contract, asks
    `z-ai/glm-5.3-flash` and checks the TEE signature. Today it answers TOO_EARLY, as its rules require.
@@ -79,13 +105,14 @@ Chain Signatures EVM signer (path `verdict-v1`) is `0xD5f2B07870279Fd733eDadFB1e
 
 On Base Sepolia (deployed with `evm/deploy.sh`):
 - `Forseti.sol` verifier: [`0x374541e22a7406E8246D0774E8994fc358232121`](https://sepolia.basescan.org/address/0x374541e22a7406E8246D0774E8994fc358232121), `signer()` returns the address above
-- `DemoMarkets.sol`: [`0x9E6edEA194B835c6D100968FF5E8d5eaac3C8692`](https://sepolia.basescan.org/address/0x9E6edEA194B835c6D100968FF5E8d5eaac3C8692)
+- `DemoMarkets.sol` v2: [`0x42297B4CddeC88CcF1aC989865Fd8e29570b3711`](https://sepolia.basescan.org/address/0x42297B4CddeC88CcF1aC989865Fd8e29570b3711) (only the operator opens markets, no bets once a verdict exists, refunds 7 days after the close without a verdict)
+- `DemoMarkets.sol` v1, retired: [`0x9E6edEA194B835c6D100968FF5E8d5eaac3C8692`](https://sepolia.basescan.org/address/0x9E6edEA194B835c6D100968FF5E8d5eaac3C8692). It holds the bets of markets 1 and 3 below; our audit found it accepted bets after the verdict was known, so v2 replaced it.
 
 The executor (`executor/forseti.mjs`) drives a market end to end. Each step saves a proof bundle in
 `executor/proofs/`: sources, snapshots, the exact request and response, the TEE signature and the tx.
 
 ```
-node --env-file=../.env forseti.mjs create markets/berlin.json   # commit the judge, 1 NEAR deposit
+node --env-file=../.env forseti.mjs create markets/berlin.json   # commit the judge, 2 NEAR deposit
 node --env-file=../.env forseti.mjs preview <id>                 # "ask the judge" before the deadline
 node --env-file=../.env forseti.mjs resolve <id>                 # after the deadline: round + verdict
 node --env-file=../.env forseti.mjs appeal <id>                  # optional: bond -> panel
@@ -139,32 +166,93 @@ replaces 6.3 °C with 1.8 °C in the snapshot before asking the judge.
 | Finalize + MPC signature | [`EUC7XUys…`](https://testnet.nearblocks.io/txns/EUC7XUysySTa7hJYEpazpsGkMSK8hF2xTCTUuZjKofsM) | YES: the verdict is overturned and the bond goes back to the appellant |
 | Relay and claim | [relay](https://sepolia.basescan.org/tx/0x8f0b133eda138b78d37c44331f881ccd7b0335d3f6a2312f4f624552c1229de1), [claim](https://sepolia.basescan.org/tx/0xe3fdb4ff9cdc432d06a80f36f942bdff9bd635655968df2ecf7e985a9ec7ae20) | the YES bettor takes the 0.003 ETH pool |
 
-On the web page, market 3 shows the forged verdict next to the panel votes. **Verify in this browser** passes
+On the web page, market 3 shows the forged verdict next to the panel votes. **Check it yourself** passes
 all 33 checks and adds two notes: the verdict's bundle is marked as forged, and its snapshot hash differs from
 the one the panel used.
 
+## Replays of real markets
+
+`executor/replay.mjs` takes markets that already settled on Polymarket, Kalshi and Manifold, seals each
+one on Forseti with the same question and rules adapted to sources the judge can read (APIs, official
+releases, Wikipedia), lets the judge rule, finalizes and delivers the verdict to Base Sepolia. The original
+link and official outcome go to `web/replays.json`, and the markets page shows them next to Forseti's
+verdict. The lists are in `executor/replays/`.
+
+```
+node --env-file=../.env replay.mjs replays/contested.json --appeal <slug,slug>   # disputed cases, with the panel
+node --env-file=../.env replay.mjs replays/regular.json                          # settled markets
+```
+
+On Nov 6 2026 this sealed 27 replays (markets 4–30). Of 21 settled markets across sports, crypto,
+weather, macro, politics, tech and culture, 20 came out the same as on their platform. The 21st is
+market 29: the contract rejected all four of the judge's answers there (three times it joined two price
+candles with a space where the source has a comma, once it used `...` elisions the contract did not accept
+yet). Unless a valid answer arrives first, anyone can settle it as Invalid by calling `finalize` after 18:44
+UTC on Nov 8. Market 30 replays the same question with an instruction to quote one continuous passage, and
+agrees with Manifold.
+
+The contract was upgraded twice during and after this run, and the record shows it:
+- At 18:58 UTC on Nov 6 the quote check learned to accept `...` elisions and typographic dashes. Markets
+  4–29 were sealed before it; the verdicts of markets 9, 10, 14, 22, 24 and 25 were accepted after it.
+  Several answers it had rejected before were real quotes with elisions (see the panel table below).
+- On Nov 7 our audit found that a dishonest executor could dispute its own verdict and fill the panel in
+  one block. The upgrade gives the panel its own nonce and a full voting window, lets anyone contest a
+  panel seat (a contested seat counts as INVALID), makes TOO_EARLY a challengeable proposal, stops
+  proposals after `resolve_by`, and requires longer quote pieces. All existing rulings still pass the
+  browser checks.
+
+The disputed cases went to the panel of three:
+
+| Market | Platform said | Forseti | Panel |
+|---|---|---|---|
+| 4: Did Zelenskyy wear a suit before July 2025? | Polymarket (UMA vote): No | Yes | 3 × Yes |
+| 5: Did the US and Ukraine agree a minerals deal before April 2025? | Polymarket (UMA vote): Yes | No | 3 × No |
+| 6: Did the US begin an offensive to control part of Venezuela by Jan 31 2026? | Polymarket: No | Yes | 2 × Yes; the third model (Qwen3.8-27B) answered No with two real passages joined by `...`, which the contract of the time rejected |
+| 7: Was Khamenei out as Supreme Leader by Feb 28 2026? | Polymarket: Yes | Yes | 2 × Yes; the third (Qwen3.6-35B, also Yes) was rejected the same way |
+| 8: Did Khamenei leave office before Mar 1 2026, death excluded? | Kalshi: settled at 2¢ | Invalid | 3 × Invalid |
+
+To call the panel on these replays, `forseti.testnet` appealed its own verdicts. The judge reads today's
+copies of public sources, so it knows how events turned out: a replay shows how a sealed judge reads the
+evidence, not what any oracle would have said on the day.
+
 ## NEAR technology used
 
-- **NEAR AI Cloud** (TEE inference): models run in Intel TDX + NVIDIA TEE and sign every response.
+- **NEAR AI Cloud** (TEE inference): models run in Intel TDX + NVIDIA TEE and sign every response. We check
+  the Intel TDX evidence before registering a key; NVIDIA's own verdict could not be fetched from our network.
 - **Smart contract on NEAR** (Rust, near-sdk 5.29): commitment registry, request builder, `ed25519_verify`
   of model signatures, quote check, appeals.
 - **Chain Signatures** (`v1.signer-prod.testnet`): the contract signs the final verdict for EVM chains.
 
 ## Trust assumptions (MVP)
 
-- The executor chooses the snapshots. Each ruling stores their sha256, and conflicting signed answers or
-  appeals go to the panel, but a dishonest snapshot is not detected on-chain. Market 3 above shows the
-  attack and how an appeal corrects it.
+- The executor chooses the snapshots. Each ruling stores their sha256, but a dishonest snapshot is not
+  detected on-chain. Anyone who notices can appeal, or contest a panel vote with a vote made from the real
+  source; a contested seat counts as INVALID, so forgery that someone notices ends in a refund, not a wrong
+  payout. That needs someone watching during the challenge window. Market 3 above shows the attack and how
+  an appeal corrects it; notarized sources are on the roadmap.
 - The contract owner registers model TEE keys after checking attestation off-chain.
-- Whoever can upgrade the NEAR contract can sign any verdict for every chain. After deployment the
-  contract's full-access keys must be removed or put behind a timelock.
+- `forseti.testnet` still has a full-access key. Its holder can upgrade the contract and can also ask NEAR
+  Chain Signatures directly for a signature over any verdict, which every chain would accept. Before mainnet
+  it must be removed or put behind a multisig and a timelock. Removing it also freezes the TEE key registry,
+  since the contract is its own owner, so key rotation needs a separate owner account first.
 
 ## Layout
 
 - `contract/`: NEAR contract and unit tests
 - `evm/`: `Forseti.sol` verifier, `DemoMarkets.sol`, Foundry tests
 - `executor/`: executor, attestation checks, EVM relay and bets scripts, proof bundles
-- `web/`: the market register and in-browser verification
+- `web/`: the landing page, market register, in-browser verification, docs and roadmap
+- `docs/`: documentation and roadmap, in Markdown
+
+## Credits
+
+- The contract started from the official [cargo-near](https://github.com/near/cargo-near) template.
+- Libraries: near-sdk, near-kit, viem, @noble/curves, @scure/base, jose, @phala/dcap-qvl-node, Foundry,
+  marked; the page loads its libraries from esm.sh.
+- Models: GLM 5.3 Flash and two Qwen models on NEAR AI Cloud.
+- The code, docs and audit were written with the help of Claude (Anthropic), an AI assistant.
+- The landing quotes Andrew Hall (a16z) and cites reporting by The Wall Street Journal; the replays link to
+  the original Polymarket, Kalshi and Manifold markets and to the reporting on each dispute.
 
 ## License
 

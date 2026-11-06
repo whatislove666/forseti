@@ -1,0 +1,114 @@
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap");
+
+/* Forseti components. Every color comes from a token; gold only for verified or final, seal red only for seals. */
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/25px var(--font-sans); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.fs-pad { padding: var(--space-6); }
+.fs-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); }
+.fs-stack { display: grid; gap: var(--space-4); }
+.fs-muted { color: var(--ink-muted); }
+
+/* Logo and seals */
+.fs-mark { color: var(--ink); display: block; }
+.fs-lockup { display: inline-flex; align-items: center; gap: var(--space-3); color: var(--ink); text-decoration: none; }
+.fs-lockup-word { font: 600 32px/1 var(--font-display); letter-spacing: -0.01em; }
+.fs-seal { display: block; color: var(--seal); }
+.fs-seal-final, .fs-seal-overturned { color: var(--gold); }
+.fs-seal-disc { fill: var(--gold-soft); }
+.fs-seal-old { color: var(--seal); }
+
+/* Buttons */
+.fs-btn { font: 600 15px/20px var(--font-sans); border-radius: var(--radius-md); padding: 11px 18px; cursor: pointer; border: 1px solid transparent; }
+.fs-btn-primary { background: var(--ink); color: var(--on-ink); }
+.fs-btn-quiet { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+.fs-btn:disabled { opacity: 0.55; cursor: progress; }
+
+/* Status stamp: a mark plus words, never color alone */
+.fs-stamp { justify-self: start; display: inline-flex; align-items: center; gap: var(--space-1); font: 500 13px/19px var(--font-sans); padding: 3px var(--space-3) 3px 9px; border-radius: var(--radius-full); border: 1px solid var(--seal); color: var(--seal); background: var(--seal-soft); white-space: nowrap; }
+.fs-stamp::before { content: ""; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; }
+.fs-stamp-proposed::before { border-style: dashed; }
+.fs-stamp-disputed::before { background: currentColor; }
+.fs-stamp-final { color: var(--gold); border-color: var(--gold); background: var(--gold-soft); }
+.fs-stamp-final::before { background: currentColor; }
+.fs-stamp-overturned { color: var(--gold); border-color: var(--gold); background: var(--gold-soft); }
+.fs-stamp-overturned::before { background: currentColor; box-shadow: -3px 1px 0 -1px var(--seal); }
+
+/* Level one: the verdict block */
+.fs-verdict { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.fs-question { font: 500 40px/46px var(--font-display); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.fs-answer { font: 600 64px/64px var(--font-display); margin: 0; }
+.fs-answer-pending { color: var(--ink-muted); font-size: 40px; line-height: 46px; font-weight: 500; }
+.fs-plain { font: 400 16px/25px var(--font-sans); margin: 0; max-width: 60ch; }
+.fs-when { font: 400 14px/21px var(--font-sans); color: var(--ink-muted); }
+
+/* Evidence quote: the exact line the judge relied on */
+.fs-quote { margin: 0; padding: var(--space-3) var(--space-4); background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.fs-quote code { font: 400 14px/22px var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.fs-quote figcaption { font: 400 13px/19px var(--font-sans); color: var(--ink-muted); margin-top: var(--space-1); }
+
+/* Level two: the timeline of how it was decided */
+.fs-timeline { list-style: none; margin: 0; padding: 0; }
+.fs-event { position: relative; padding: 0 0 var(--space-6) 28px; }
+.fs-event::before { content: ""; position: absolute; left: 4px; top: 8px; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--line-strong); background: var(--paper); }
+.fs-event::after { content: ""; position: absolute; left: 9px; top: 22px; bottom: 2px; width: 1.5px; background: var(--line); }
+.fs-event:last-child::after { display: none; }
+.fs-event-title { font: 600 16px/25px var(--font-sans); }
+.fs-event-note { font: 400 14px/21px var(--font-sans); color: var(--ink-muted); }
+.fs-event-final::before { background: var(--gold); border-color: var(--gold); }
+.fs-event-appeal::before { border-color: var(--seal); background: var(--seal-soft); }
+
+/* The check chain: a gold thread that fills link by link */
+.fs-panel { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-6); }
+.fs-checks { list-style: none; margin: var(--space-4) 0 0; padding: 0; }
+.fs-check { position: relative; padding: 2px 0 12px 28px; font: 400 14px/21px var(--font-sans); }
+.fs-check::before { content: ""; position: absolute; left: 1px; top: 5px; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--paper-raised); z-index: 1; }
+.fs-check::after { content: ""; position: absolute; left: 7px; top: 17px; width: 2px; height: 100%; background: var(--line-strong); }
+.fs-check:last-child::after { display: none; }
+.fs-check-pass::before { background: var(--gold); border-color: var(--gold); }
+.fs-check-pass::after { background: var(--gold); }
+.fs-check-fail { color: var(--fail); }
+.fs-check-fail::before { border-color: var(--fail); background: var(--fail-soft); }
+.fs-check-note::before { border-style: dashed; }
+.fs-check small { display: block; color: var(--ink-muted); font-size: 13px; line-height: 19px; }
+.fs-summary { margin-top: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font: 600 15px/20px var(--font-sans); }
+.fs-summary-pass { background: var(--gold-soft); color: var(--gold); }
+.fs-summary-fail { background: var(--fail-soft); color: var(--fail); }
+
+/* Evidence mismatch: two snapshots side by side */
+.fs-mismatch { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+.fs-mismatch figure { margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--paper-raised); }
+.fs-mismatch figcaption { font: 600 14px/21px var(--font-sans); margin-bottom: var(--space-1); }
+.fs-mismatch code { font: 400 14px/22px var(--font-mono); overflow-wrap: anywhere; }
+.fs-mismatch mark { background: var(--seal-soft); color: var(--seal); border-radius: 3px; padding: 0 2px; }
+
+/* Ask the judge */
+.fs-field { display: grid; gap: 6px; }
+.fs-field label { font: 500 14px/21px var(--font-sans); }
+.fs-input { font: 400 14px/20px var(--font-mono); color: var(--ink); background: var(--paper); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 10px 12px; }
+
+/* Level three: For auditors */
+.fs-details { border-top: 1px solid var(--line); padding-top: var(--space-4); }
+.fs-details > summary { cursor: pointer; font: 600 16px/25px var(--font-sans); list-style: none; }
+.fs-details > summary::-webkit-details-marker { display: none; }
+.fs-details > summary::before { content: "+"; display: inline-block; width: 1.2em; color: var(--ink-muted); }
+.fs-details[open] > summary::before { content: "−"; }
+.fs-facts { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--space-2) var(--space-6); margin: var(--space-4) 0 0; font: 400 14px/21px var(--font-sans); }
+.fs-facts dt { color: var(--ink-muted); }
+.fs-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.fs-facts code { font: 400 13px/19px var(--font-mono); }
+
+/* Register: one market per row */
+.fs-register { list-style: none; margin: 0; padding: 0; background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.fs-market { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
+.fs-market:last-child { border-bottom: 0; }
+.fs-market-q { font: 500 22px/29px var(--font-display); }
+.fs-market-meta { display: grid; justify-items: end; gap: 4px; }
+
+@media (max-width: 640px) {
+  .fs-question { font-size: 30px; line-height: 36px; }
+  .fs-verdict { grid-template-columns: 1fr; }
+  .fs-facts { grid-template-columns: 1fr; gap: 0; }
+  .fs-facts dd { margin-bottom: var(--space-2); }
+  .fs-market { grid-template-columns: 36px minmax(0, 1fr); }
+  .fs-market-meta { grid-column: 2; justify-items: start; }
+}

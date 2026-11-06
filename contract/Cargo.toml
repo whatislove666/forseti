@@ -1,13 +1,11 @@
 [package]
 name = "forseti"
-description = "Forseti: a locked AI judge for prediction markets on any chain"
+description = "Forseti: an AI judge for prediction markets, sealed before trading and checked on NEAR"
 version = "0.1.0"
 edition = "2024"
 resolver = "3"
 rust-version = "1.93"
-# TODO: Fill out the repository field to help NEAR ecosystem tools to discover your project.
-# NEP-0330 is automatically implemented for all contracts built with https://github.com/near/cargo-near.
-# Link to the repository will be available via `contract_source_metadata` view-function.
+# NEP-0330: cargo-near exposes this through the `contract_source_metadata` view.
 repository = "https://github.com/whatislove666/forseti"
 
 [lib]

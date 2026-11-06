@@ -23,9 +23,15 @@ const MAX_SNAPSHOTS_TOTAL: usize = 100 * 1024;
 const MAX_RESPONSE_BYTES: usize = 8 * 1024;
 const MAX_PREVIEWS: usize = 5;
 const MAX_CHALLENGE_PERIOD_NS: u64 = 30 * 24 * 3600 * 1_000_000_000;
-const TOO_EARLY_RETRY_NS: u64 = 5 * 60 * 1_000_000_000;
-/// Covers worst-case storage: the commitment plus 10 stored rulings of up to 8 KB each.
-const MARKET_DEPOSIT: NearToken = NearToken::from_near(1);
+/// Covers worst-case storage: the commitment plus up to 13 stored rulings (5 previews, a proposal,
+/// a conflicting answer, 3 panel votes and 3 contesting votes) of up to 8 KB of response each.
+const MARKET_DEPOSIT: NearToken = NearToken::from_near(2);
+/// Limits on a quote, so that evidence cannot be a few characters found anywhere.
+const MAX_QUOTE_PIECES: usize = 8;
+const MIN_QUOTE_PIECE: usize = 8;
+const MIN_LONGEST_PIECE: usize = 16;
+/// Side storage for panel bookkeeping added after launch (no migration of `Market` needed).
+const DISPUTE_PREFIX: &[u8] = b"d";
 /// Derivation path of the MPC key that signs verdicts for EVM chains.
 pub const MPC_PATH: &str = "verdict-v1";
 const MPC_GAS: Gas = Gas::from_tgas(30);
@@ -125,6 +131,7 @@ pub struct Market {
     pub phase: Phase,
     pub round: u32,
     pub round_nonce: String,
+    /// Unused since TOO_EARLY became a challengeable proposal; kept so stored markets still load.
     pub retry_after: U64,
     pub previews: Vec<Ruling>,
     pub proposed: Option<Ruling>,
@@ -136,6 +143,18 @@ pub struct Market {
     pub panel_votes: Vec<Option<Ruling>>,
     pub outcome: u8,
     pub evm_signature: Option<EvmSignature>,
+}
+
+/// How a panel hears a dispute. Kept beside `Market` so existing markets need no migration.
+#[near(serializers = [json, borsh])]
+#[derive(Clone, Default)]
+pub struct Dispute {
+    /// When the panel started taking votes (ns). It decides only after one challenge period, so
+    /// anyone can still contest a vote that was submitted with forged sources.
+    pub opened_at: U64,
+    /// A second signed vote for a panel seat with a different outcome. A contested seat counts as
+    /// INVALID, so forged sources can at worst force a refund, not a wrong outcome.
+    pub contested: Vec<Option<Ruling>>,
 }
 
 #[near(contract_state)]
@@ -183,10 +202,10 @@ impl Forseti {
 
     // ---------- markets ----------
 
-    /// Registers a judge for a market. Attach 1 NEAR to cover storage.
+    /// Registers a judge for a market. Attach 2 NEAR to cover storage.
     #[payable]
     pub fn create_market(&mut self, params: MarketParams) -> u32 {
-        require!(env::attached_deposit() >= MARKET_DEPOSIT, "attach 1 NEAR to cover storage");
+        require!(env::attached_deposit() >= MARKET_DEPOSIT, "attach 2 NEAR to cover storage");
         validate_params(&params, env::block_timestamp()).unwrap_or_else(|e| env::panic_str(&e));
         for model in std::iter::once(&params.model).chain(params.panel.iter()) {
             require!(!self.get_signers(model.clone()).is_empty(), format!("model {model} has no registered TEE key"));
@@ -227,6 +246,11 @@ impl Forseti {
         self.markets.len()
     }
 
+    /// The panel's bookkeeping for a disputed market: when voting opened and contested votes.
+    pub fn get_dispute(&self, id: u32) -> Option<Dispute> {
+        load_dispute(id)
+    }
+
     /// The exact request body to send to NEAR AI. Send it byte for byte: its sha256 is checked.
     pub fn build_request(&self, id: u32, model: String, snapshots: Vec<String>, preview: bool) -> String {
         let m = self.market(id);
@@ -234,17 +258,26 @@ impl Forseti {
     }
 
     /// Rebuilds the request of any past ruling, so anyone can check its `request_sha256`:
-    /// pass the ruling's snapshots and its nonce ("preview" or the round nonce).
+    /// pass the ruling's snapshots and its nonce ("preview", the round nonce, or for panel votes
+    /// the round nonce followed by ":panel").
     pub fn rebuild_request(&self, id: u32, model: String, snapshots: Vec<String>, nonce: String) -> String {
         request_body(&self.market(id).commitment, &model, &snapshots, &nonce).unwrap_or_else(|e| env::panic_str(&e))
     }
 
-    /// Opens a resolution round after the event deadline. Anyone can call it. The round nonce
-    /// comes from the block's random seed, so no answer can be prepared in advance.
+    /// Opens a resolution round after the event deadline, or a new one after an unchallenged
+    /// TOO_EARLY. Anyone can call it. The round nonce comes from the block's random seed, so no
+    /// answer can be prepared in advance.
     pub fn open_round(&mut self, id: u32) {
         let mut m = self.market(id);
         let now = env::block_timestamp();
-        require!(m.phase == Phase::Open, "the market is not waiting for a round");
+        let too_early_settled = m.phase == Phase::Proposed
+            && m.proposed.as_ref().map(|r| r.outcome) == Some(TOO_EARLY)
+            && now >= m.proposed_at.0 + m.commitment.params.challenge_period.0;
+        require!(m.phase == Phase::Open || too_early_settled, "the market is not waiting for a round");
+        if too_early_settled {
+            m.proposed = None;
+            m.proposed_at = U64(0);
+        }
         require!(now >= m.commitment.params.resolve_after.0, "the event deadline has not passed yet");
         require!(now >= m.retry_after.0, "wait a few minutes before retrying after TOO_EARLY");
         require!(now <= m.commitment.params.resolve_by.0, "the market expired; call finalize to settle it as INVALID");
@@ -263,6 +296,9 @@ impl Forseti {
         require!(env::block_timestamp() < m.commitment.params.resolve_after.0, "the event deadline has passed");
         let model = m.commitment.params.model.clone();
         let ruling = self.check(&m, &model, &snapshots, response, &signer, &signature, true);
+        // The preview nonce never changes, so the same signed answer could be resubmitted to push
+        // out the others.
+        require!(!m.previews.iter().any(|p| p.response_sha256 == ruling.response_sha256), "this preview is already recorded");
         if m.previews.len() == MAX_PREVIEWS {
             m.previews.remove(0);
         }
@@ -272,9 +308,12 @@ impl Forseti {
     }
 
     /// Submits a signed answer for the current round.
-    /// - Resolving: the committed model's answer becomes the proposal (or TOO_EARLY reopens later).
+    /// - Resolving: the committed model's answer becomes the proposal, TOO_EARLY included: it can
+    ///   be challenged like any verdict, and a new round opens only after the challenge period.
     /// - Proposed: a signed answer with a different outcome sends the market to the panel.
-    /// - Disputed: each panel model votes once.
+    /// - Disputed: each panel model votes once; a second vote for a seat with a different outcome
+    ///   contests that seat. Panel requests use the nonce "<round nonce>:panel", so the proposal's
+    ///   own signed answer cannot be replayed as a vote.
     pub fn submit_ruling(
         &mut self,
         id: u32,
@@ -290,17 +329,12 @@ impl Forseti {
         match m.phase {
             Phase::Resolving => {
                 require!(model == committed, "this round takes the committed model");
+                require!(now <= m.commitment.params.resolve_by.0, "the market expired; call finalize to settle it as INVALID");
                 let r = self.check(&m, &model, &snapshots, response, &signer, &signature, false);
-                if r.outcome == TOO_EARLY {
-                    m.phase = Phase::Open;
-                    m.retry_after = U64(now + TOO_EARLY_RETRY_NS);
-                    emit("too_early", json!({ "id": id, "round": m.round }));
-                } else {
-                    emit("proposed", json!({ "id": id, "round": m.round, "outcome": r.outcome }));
-                    m.proposed = Some(r);
-                    m.proposed_at = U64(now);
-                    m.phase = Phase::Proposed;
-                }
+                emit(if r.outcome == TOO_EARLY { "too_early" } else { "proposed" }, json!({ "id": id, "round": m.round, "outcome": r.outcome }));
+                m.proposed = Some(r);
+                m.proposed_at = U64(now);
+                m.phase = Phase::Proposed;
             }
             Phase::Proposed => {
                 require!(now < m.proposed_at.0 + m.commitment.params.challenge_period.0, "the challenge period is over");
@@ -311,14 +345,27 @@ impl Forseti {
                 emit("disputed", json!({ "id": id, "by": "conflicting_answer", "outcome": r.outcome }));
                 m.challenge = Some(r);
                 m.phase = Phase::Disputed;
+                open_dispute(id, now);
             }
             Phase::Disputed => {
                 let seat = m.commitment.params.panel.iter().position(|p| *p == model);
                 let seat = seat.unwrap_or_else(|| env::panic_str("this model is not on the panel"));
-                require!(m.panel_votes[seat].is_none(), "this panel model has already voted");
                 let r = self.check(&m, &model, &snapshots, response, &signer, &signature, false);
-                emit("panel_vote", json!({ "id": id, "model": model, "outcome": r.outcome }));
-                m.panel_votes[seat] = Some(r);
+                match &m.panel_votes[seat] {
+                    None => {
+                        emit("panel_vote", json!({ "id": id, "model": model, "outcome": r.outcome }));
+                        m.panel_votes[seat] = Some(r);
+                    }
+                    Some(first) => {
+                        let mut d = load_dispute(id).unwrap_or_default();
+                        d.contested.resize(3, None);
+                        require!(d.contested[seat].is_none(), "this panel seat is already contested");
+                        require!(seen_as(first.outcome) != seen_as(r.outcome), "same outcome as this seat's vote; nothing to contest");
+                        emit("panel_vote_contested", json!({ "id": id, "model": model, "outcome": r.outcome }));
+                        d.contested[seat] = Some(r);
+                        save_dispute(id, &d);
+                    }
+                }
             }
             _ => env::panic_str("the market is not taking rulings"),
         }
@@ -338,6 +385,7 @@ impl Forseti {
         m.appellant = Some(env::predecessor_account_id());
         m.bond = U128(bond);
         m.phase = Phase::Disputed;
+        open_dispute(id, env::block_timestamp());
         emit("disputed", json!({ "id": id, "by": "appeal", "appellant": env::predecessor_account_id() }));
         self.markets.replace(id, m);
     }
@@ -350,13 +398,21 @@ impl Forseti {
             let now = env::block_timestamp();
             let challenge_end = m.proposed_at.0 + m.commitment.params.challenge_period.0;
             let expired = now > m.commitment.params.resolve_by.0;
+            let proposed = m.proposed.as_ref().map(|r| r.outcome);
             let outcome = match m.phase {
-                Phase::Proposed if now >= challenge_end => m.proposed.as_ref().map(|r| r.outcome).unwrap_or(INVALID),
-                Phase::Disputed => match panel_decision(&m.panel_votes) {
-                    Some(o) => o,
-                    None if expired => INVALID,
-                    None => env::panic_str("the panel has not decided yet"),
-                },
+                // An unchallenged TOO_EARLY is never final: it waits for a new round, or expiry.
+                Phase::Proposed if proposed == Some(TOO_EARLY) && expired => INVALID,
+                Phase::Proposed if proposed == Some(TOO_EARLY) => env::panic_str("the judge said TOO_EARLY; open a new round"),
+                Phase::Proposed if now >= challenge_end => proposed.unwrap_or(INVALID),
+                Phase::Disputed => {
+                    let d = load_dispute(id).unwrap_or_default();
+                    let voting_ends = d.opened_at.0 + m.commitment.params.challenge_period.0;
+                    match panel_decision(&effective_votes(&m.panel_votes, &d)) {
+                        Some(o) if now >= voting_ends => o,
+                        None if expired => INVALID,
+                        _ => env::panic_str("the panel is still voting"),
+                    }
+                }
                 Phase::Open | Phase::Resolving if expired => INVALID,
                 _ => env::panic_str("nothing to finalize yet"),
             };
@@ -443,7 +499,7 @@ impl Forseti {
             let i = m.commitment.params.sources.iter().position(|s| s.id == a.source);
             let i = i.unwrap_or_else(|| env::panic_str("the answer cites an unknown source"));
             require!(!a.quote.trim().is_empty(), "YES and NO need a quote");
-            require!(normalize(&snapshots[i]).contains(&normalize(&a.quote)), "quote not found in the cited snapshot");
+            require!(quote_found(&snapshots[i], &a.quote), "quote not found in the cited snapshot");
         }
         Ruling {
             model: model.to_string(),
@@ -476,8 +532,49 @@ fn request_nonce(m: &Market, preview: bool) -> String {
     if preview {
         return "preview".into();
     }
-    require!(matches!(m.phase, Phase::Resolving | Phase::Proposed | Phase::Disputed), "no open round");
-    m.round_nonce.clone()
+    match m.phase {
+        Phase::Resolving | Phase::Proposed => m.round_nonce.clone(),
+        Phase::Disputed => format!("{}:panel", m.round_nonce),
+        _ => env::panic_str("no open round"),
+    }
+}
+
+fn dispute_key(id: u32) -> Vec<u8> {
+    [DISPUTE_PREFIX, &id.to_le_bytes()].concat()
+}
+
+fn load_dispute(id: u32) -> Option<Dispute> {
+    env::storage_read(&dispute_key(id)).map(|b| near_sdk::borsh::from_slice(&b).unwrap())
+}
+
+fn save_dispute(id: u32, d: &Dispute) {
+    env::storage_write(&dispute_key(id), &near_sdk::borsh::to_vec(d).unwrap());
+}
+
+fn open_dispute(id: u32, now: u64) {
+    save_dispute(id, &Dispute { opened_at: U64(now), contested: vec![None, None, None] });
+}
+
+/// TOO_EARLY counts as INVALID wherever the panel compares outcomes.
+fn seen_as(outcome: u8) -> u8 {
+    if outcome == TOO_EARLY { INVALID } else { outcome }
+}
+
+/// The panel's votes with every contested seat counted as INVALID.
+pub fn effective_votes(votes: &[Option<Ruling>], d: &Dispute) -> Vec<Option<Ruling>> {
+    votes
+        .iter()
+        .enumerate()
+        .map(|(i, v)| {
+            let contested = d.contested.get(i).is_some_and(|c| c.is_some());
+            v.clone().map(|mut r| {
+                if contested {
+                    r.outcome = INVALID;
+                }
+                r
+            })
+        })
+        .collect()
 }
 
 pub fn validate_params(p: &MarketParams, now: u64) -> Result<(), String> {
@@ -534,7 +631,7 @@ pub fn request_body(c: &Commitment, model: &str, snapshots: &[String], nonce: &s
     if snapshots.iter().any(|s| s.len() > MAX_SNAPSHOT_BYTES) || snapshots.iter().map(|s| s.len()).sum::<usize>() > MAX_SNAPSHOTS_TOTAL {
         return Err("snapshots are too large: 32 KB each, 100 KB in total".into());
     }
-    if snapshots.iter().any(|s| s.contains("<source") || s.contains("</source")) {
+    if snapshots.iter().any(|s| has_source_tag(s)) {
         return Err("a snapshot contains a <source> tag; the normalizer must strip it".into());
     }
     let mut user = format!(
@@ -596,9 +693,43 @@ fn strip_fence(s: &str) -> &str {
     }
 }
 
-/// Whitespace-insensitive comparison, so line breaks in the snapshot don't fail an exact quote.
+/// Text as the quote check compares it: whitespace collapsed, typographic dashes and quotation
+/// marks folded to ASCII, so a judge that types "-" for "‐" still matches.
 pub fn normalize(s: &str) -> String {
-    s.split_whitespace().collect::<Vec<_>>().join(" ")
+    let folded: String = s
+        .chars()
+        .map(|c| match c {
+            '\u{2010}'..='\u{2015}' | '\u{2212}' => '-',
+            '\u{2018}' | '\u{2019}' | '\u{201B}' | '\u{2032}' => '\'',
+            '\u{201C}' | '\u{201D}' | '\u{201F}' | '\u{2033}' => '"',
+            c => c,
+        })
+        .collect();
+    folded.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// A quote may leave text out with "..." or "…", as quotes do. Every piece must be in the snapshot,
+/// with at most 8 pieces of at least 8 characters and one of at least 16, so a few characters that
+/// appear anywhere ("1", "true") never count as evidence.
+pub fn quote_found(snapshot: &str, quote: &str) -> bool {
+    let text = normalize(snapshot);
+    let pieces: Vec<String> = quote.replace('\u{2026}', "...").split("...").map(normalize).filter(|p| !p.is_empty()).collect();
+    let len = |p: &String| p.chars().count();
+    !pieces.is_empty()
+        && pieces.len() <= MAX_QUOTE_PIECES
+        && pieces.iter().all(|p| len(p) >= MIN_QUOTE_PIECE && text.contains(p.as_str()))
+        && pieces.iter().any(|p| len(p) >= MIN_LONGEST_PIECE)
+}
+
+/// True if the text has anything a model could read as our delimiter: "<", optional whitespace,
+/// an optional "/", optional whitespace, then "source" in any case. The executor's normalizer
+/// defuses exactly this pattern.
+pub fn has_source_tag(s: &str) -> bool {
+    s.match_indices('<').any(|(i, _)| {
+        let rest = s[i + 1..].trim_start();
+        let rest = rest.strip_prefix('/').unwrap_or(rest).trim_start();
+        rest.get(..6).is_some_and(|w| w.eq_ignore_ascii_case("source"))
+    })
 }
 
 /// Majority of the panel. TOO_EARLY counts as INVALID. Three different answers make INVALID.

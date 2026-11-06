@@ -1,0 +1,170 @@
+[
+  {
+    "slug": "polymarket-zelensky-suit",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/will-zelenskyy-wear-a-suit-before-july",
+    "title_on_platform": "Will Zelenskyy wear a suit before July?",
+    "closed": "2025-07-09",
+    "platform_outcome": "No",
+    "contested": true,
+    "dispute_summary": "At the NATO summit in The Hague on 24-25 June 2025 Zelenskyy wore a black jacket, matching trousers and a collared shirt with no tie, and many outlets called it a suit. A Yes proposal was disputed and the market went through repeated UMA token-holder votes; it resolved No after UMA voters found that a consensus of credible reporting had not established he wore a suit. Critics said large UMA holders could steer outcomes in a market that traded more than $237M; UMA said it had seen no evidence of collusion.",
+    "dispute_refs": [
+      "https://decrypt.co/329210/polymarket-rules-no-237m-bet-zelenskyys",
+      "https://www.coindesk.com/markets/2025/07/07/polymarket-embroiled-in-usd160m-controversy-over-whether-zelensky-wore-a-suit-at-nato",
+      "https://www.coindesk.com/markets/2025/07/09/this-isnt-decentralized-says-polymarket-power-user-as-zelenskyys-suit-controversy-unfolds"
+    ],
+    "volume": "$242.2M (Polymarket gamma API); Decrypt reported more than $237M",
+    "question": "Was Volodymyr Zelenskyy photographed or videotaped wearing a suit between May 22 and June 30, 2025 (US Eastern time)?",
+    "rules": "Resolve YES if authentic photos or video, both taken and published between 22 May 2025 and 30 June 2025 (US Eastern time), show Volodymyr Zelenskyy wearing a suit. Resolve NO otherwise. Images or video produced or altered with AI or video editing do not count. The deciding standard is a consensus of credible reporting: treat the news reports in sources kyivpost and euronews, which describe what he wore around the NATO summit in The Hague on 23-25 June 2025, as that reporting.",
+    "sources": [
+      {
+        "id": "kyivpost",
+        "url": "https://www.kyivpost.com/post/55194",
+        "extract": ""
+      },
+      {
+        "id": "euronews",
+        "url": "https://www.euronews.com/news/2025/06/25/sharp-dressed-man-ukraines-volodymyr-zelenskyy-and-the-sartorial-switch-for-nato",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "Ukrainian President Volodymyr Zelensky was seen entering the NATO conference at the Hague today wearing a suit.",
+      "Zelensky wore a black jacket, black undershirt, black slacks, and black combat boots.",
+      "in their place is a blazer (albeit with military overtones), dress pants, and a dress shirt, sans necktie.",
+      "There, Zelenskyy sported a military-style black jacket and dress shirt"
+    ]
+  },
+  {
+    "slug": "polymarket-ukraine-minerals",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/ukraine-agrees-to-give-trump-rare-earth-metals-before-april",
+    "title_on_platform": "Ukraine agrees to Trump mineral deal before April?",
+    "closed": "2025-03-25",
+    "platform_outcome": "Yes",
+    "contested": true,
+    "dispute_summary": "Between 24 and 25 March 2025 the Yes price jumped from about 9% to 100% and, after disputes, a UMA token-holder vote resolved the market Yes about a week before its 31 March deadline, although no US-Ukraine minerals agreement had been signed: a framework announced in late February was never signed after the 28 February Oval Office clash, Ukraine received a new US draft on 28 March, and the deal was only signed on 30 April. Polymarket said the result went against its own clarification but refused refunds because it was not a market failure; traders alleged that one UMA whale cast about a quarter of the votes through three accounts.",
+    "dispute_refs": [
+      "https://www.theblock.co/news/ecosystems/2025-03-26-polymarket-says-governance-attack-by-uma-whale-to-hijack-a-bets-resolution-is-unprecedented-348171",
+      "https://www.coindesk.com/markets/2025/03/27/polymarket-uma-communities-lock-horns-after-usd7m-ukraine-bet-resolves",
+      "https://decrypt.co/311634/polymarket-allegations-oracle-manipulation"
+    ],
+    "volume": "$7.08M (Polymarket gamma API)",
+    "question": "Did the United States and Ukraine agree to a deal explicitly involving Ukrainian rare earth elements between February 2 and March 31, 2025 (US Eastern time)?",
+    "rules": "Resolve YES if, between 2 February 2025 and 31 March 2025 11:59 PM US Eastern time, the United States and Ukraine agreed to any deal that explicitly involves Ukrainian rare earth elements. Qualifying deals include, among others, rare earths in exchange for US military or civilian aid, partnerships involving rare earth metals, future rights to rare earth resources, mining rights, or any other cooperation on rare earth elements. An announcement of such a deal qualifies whether or not, or whenever, the deal takes effect. Resolve NO otherwise. The resolution source is official information from the US and Ukrainian governments, as reported in sources wiki, reuters and kyivind. Only an agreement reached inside the window counts; events after 31 March 2025 cannot make this YES.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&titles=Ukraine%E2%80%93United_States_Mineral_Resources_Agreement",
+        "extract": "$.query.pages.79347779.extract"
+      },
+      {
+        "id": "reuters",
+        "url": "https://www.thestar.com.my/news/world/2025/03/28/ukraine-says-mineral-deal-not-final-summary-shows-us-demands-more-income",
+        "extract": ""
+      },
+      {
+        "id": "kyivind",
+        "url": "https://kyivindependent.com/ukraine-received-new-minerals-deals-draft-on-march-28-consultations-ongoing-fm-confirms/",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "On 25 February 2025 Ukrainian Prime Minister Denys Shmyhal announced that the two countries had reached a preliminary agreement",
+      "The agreement was signed on 30 April 2025 by U.S. Treasury Secretary Scott Bessent and Ukrainian First Deputy Prime Minister Yulia Svyrydenko.",
+      "it was too early to pass judgment on a dramatically expanded minerals deal proposed by Washington",
+      "Kyiv and Washington were set to sign an earlier version of the agreement on Feb. 28, but the plan fell apart"
+    ]
+  },
+  {
+    "slug": "polymarket-venezuela-invasion",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/will-the-us-invade-venezuela-in-2025/will-the-us-invade-venezuela-by-january-31-2026",
+    "title_on_platform": "Will the U.S. invade Venezuela by January 31, 2026?",
+    "closed": "2026-02-01",
+    "platform_outcome": "No",
+    "contested": true,
+    "dispute_summary": "On 3 January 2026 US forces bombed military sites across northern Venezuela and Delta Force seized Nicolás Maduro in Caracas, and Trump said the US would 'run' the country. Polymarket posted a clarification that Trump's remark did not alone make the 'snatch-and-extract mission' an offensive to establish control, and the contract resolved No through an undisputed UMA proposal on 1 February. Yes holders said strikes, the seizure of a head of state and a pledge to run the country plainly amounted to an invasion.",
+    "dispute_refs": [
+      "https://san.com/cc/whats-an-invasion-gambling-sites-definition-costs-gamblers-millions/",
+      "https://futurism.com/future-society/polymarket-venezuela-invasion-bets",
+      "https://finance.yahoo.com/news/polymarket-withholds-payouts-venezuela-invasion-130701655.html"
+    ],
+    "volume": "$8.37M on the Jan 31 contract (Polymarket gamma API); press put the disputed invasion bets at about $10.5M",
+    "question": "Did the United States begin a military offensive intended to establish control over any part of Venezuela between November 3, 2025 and January 31, 2026 (US Eastern time)?",
+    "rules": "Resolve YES if, between 3 November 2025 and 31 January 2026 11:59 PM US Eastern time, the United States commenced a military offensive intended to establish control over any portion of Venezuela. Resolve NO otherwise. Territory is judged by who held it de facto on 6 September 2025 at 12:00 PM ET: land that Venezuela controlled then counts as Venezuelan, and land the United States controlled then counts as American. The resolution source is a consensus of credible reporting, here source wiki.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&titles=2026_United_States_intervention_in_Venezuela",
+        "extract": "$.query.pages.82021123.extract"
+      }
+    ],
+    "deciding_text": [
+      "On 3 January 2026, the United States launched a military strike in Venezuela and captured incumbent Venezuelan president Nicolás Maduro and his wife, Cilia Flores.",
+      "The US Armed Forces bombed infrastructure across northern Venezuela to suppress air defenses as an apprehension force attacked Maduro's compound in Caracas.",
+      "We are going to run the country until such time as we can do a safe, proper and judicious transition",
+      "The Venezuelan government remained in place, with Rodríguez sworn in as acting president on 5 January 2026."
+    ]
+  },
+  {
+    "slug": "polymarket-khamenei-feb28",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/khamenei-out-as-supreme-leader-of-iran-by-february-28",
+    "title_on_platform": "Khamenei out as Supreme Leader of Iran by February 28?",
+    "closed": "2026-03-04",
+    "platform_outcome": "Yes",
+    "contested": true,
+    "dispute_summary": "Khamenei was killed in the opening US-Israeli strikes on Tehran on the morning of 28 February 2026, the first day of the war, but Iranian officials insisted he was alive until state media confirmed his death early on 1 March. Two Yes proposals were each disputed as traders argued over the timeline against the 28 February 11:59 PM ET deadline, leaving traders who had wagered more than $115M waiting for days before the market resolved Yes on 4 March (UTC).",
+    "dispute_refs": [
+      "https://news.bgov.com/securities-law/polymarket-bettors-in-limbo-as-khameneis-time-of-death-debated",
+      "https://defirate.com/news/kalshi-halts-khamenei-market-polymarkets-contract-enters-second-dispute/"
+    ],
+    "volume": "$131.1M (Polymarket gamma API)",
+    "question": "Was Ali Khamenei removed from power as Iran's Supreme Leader between January 14, 2026 and February 28, 2026, 11:59 PM US Eastern time?",
+    "rules": "Resolve YES if Ali Khamenei, the Supreme Leader of Iran, was removed from power for any length of time between this market's creation on 14 January 2026 and 28 February 2026 11:59 PM US Eastern time (04:59 UTC on 1 March 2026). He counts as removed if, within that period, he resigns, is detained, otherwise loses his position, or is prevented from carrying out his duties as Supreme Leader. Resolve NO otherwise. The resolution source is a consensus of credible reporting, here source wiki. Iran Standard Time (IRST) is UTC+3:30.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&titles=Assassination_of_Ali_Khamenei",
+        "extract": "$.query.pages.82537558.extract"
+      }
+    ],
+    "deciding_text": [
+      "On 28 February 2026, Ali Khamenei, the supreme leader of Iran, was assassinated in Tehran as part of a series of Israeli airstrikes aimed at high-ranking Iranian officials.",
+      "Khamenei's death was confirmed by the Iranian government on 1 March.",
+      "9:30 a.m. IRST, the exact time of Khamenei's assassination on 28 February",
+      "Early on 1 March, the Iranian Supreme National Security Council, as well as Iranian state media, including the Islamic Republic of Iran Broadcasting, announced that Khamenei had been killed, despite previous steadfast denial."
+    ]
+  },
+  {
+    "slug": "kalshi-khamenei-mar1",
+    "platform": "Kalshi",
+    "url": "https://kalshi.com/markets/kxkhameneiout",
+    "title_on_platform": "Ali Khamenei out as Supreme Leader? (Before March 1, 2026; contract KXKHAMENEIOUT-AKHA-26MAR01, 'Will Ali Khamenei leave office before 2026-03-01T15:00:00.000Z?')",
+    "closed": "2026-03-01",
+    "platform_outcome": "2¢ of $1",
+    "contested": true,
+    "dispute_summary": "Khamenei was killed on 28 February 2026, but Kalshi's filed rules say a departure caused solely by death settles at the last price traded before the death, so the Before-March-1 contract settled at 2 cents instead of $1 while Polymarket's similar market paid Yes. Traders said the carve-out, which sat in the contract's secondary rules, was not adequately disclosed, and the market page's wording (last price before confirmed reporting of death) differed from the filed terms (before the death). Kalshi said a prior version of its notice was grammatically ambiguous, promised to reimburse all fees and net losses from trading in the market, and was hit with a proposed class action.",
+    "dispute_refs": [
+      "https://www.theblock.co/post/391678/kalshi-ceo-defends-khamenei-market-design-after-backlash-says-platform-will-reimburse-all-fees",
+      "https://news.bloomberglaw.com/securities-law/kalshi-sued-over-death-carveout-in-iran-leader-prediction-market",
+      "https://decrypt.co/360293/kalshi-sued-refusing-pay-out-prediction-market-iran-leader-death"
+    ],
+    "volume": "27.96M contracts traded on the Mar 1 contract (Kalshi historical API volume_fp); The Block reported more than $50M across the Khamenei event",
+    "question": "Did Ali Khamenei leave office as Supreme Leader of Iran before March 1, 2026, 15:00 UTC?",
+    "rules": "Resolve YES if Ali Khamenei leaves office as Supreme Leader of Iran before 1 March 2026, 15:00 UTC. An announcement made before then that he will leave office within the next year also counts as YES. Resolve NO if neither happens before that time. Death exception: if he leaves office solely because he died, this contract does not resolve YES; Kalshi's filed terms instead settle it at the last price traded before the death, which a YES/NO market cannot express, so answer INVALID in that case. Kalshi lists major news organisations (AP, Reuters, the New York Times and others) as settlement sources; here use source wiki.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&titles=Assassination_of_Ali_Khamenei",
+        "extract": "$.query.pages.82537558.extract"
+      }
+    ],
+    "deciding_text": [
+      "On 28 February 2026, Ali Khamenei, the supreme leader of Iran, was assassinated in Tehran as part of a series of Israeli airstrikes aimed at high-ranking Iranian officials.",
+      "Khamenei's death was confirmed by the Iranian government on 1 March.",
+      "Mojtaba Khamenei, the son of Ayatollah Ali Khamenei, was appointed by the Assembly of Experts on 8 March 2026."
+    ]
+  }
+]

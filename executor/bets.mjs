@@ -4,13 +4,16 @@
 //   node --env-file=../.env bets.mjs bet <id> yes|no <eth> [--as2]
 //   node --env-file=../.env bets.mjs status <id>
 //   node --env-file=../.env bets.mjs claim <id> [--as2]
-// --as2 uses the second demo wallet (EVM2_PRIVATE_KEY).
+// --as2 uses the second demo wallet (EVM2_PRIVATE_KEY). `open` always uses EVM_PRIVATE_KEY, the
+// DemoMarkets operator (the deployer). DEMO_MARKETS=0x… overrides the contract address.
 import { Near } from 'near-kit';
 import { createPublicClient, createWalletClient, formatEther, http, parseAbi, parseEther } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
 
-const MARKETS = process.env.DEMO_MARKETS || '0x9E6edEA194B835c6D100968FF5E8d5eaac3C8692';
+// DemoMarkets on Base Sepolia. Update after `evm/deploy.sh demo <verifier>`.
+const DEMO_MARKETS = '0x42297B4CddeC88CcF1aC989865Fd8e29570b3711';
+const MARKETS = process.env.DEMO_MARKETS || DEMO_MARKETS;
 const abi = parseAbi([
   'function open(bytes32 commitmentHash, uint64 closesAt)',
   'function bet(bytes32 commitmentHash, bool yes) payable',
@@ -19,11 +22,12 @@ const abi = parseAbi([
   'function yesStake(bytes32, address) view returns (uint256)',
   'function noStake(bytes32, address) view returns (uint256)',
   'function payout(bytes32 commitmentHash, address bettor) view returns (uint256)',
+  'error NotOperator()', 'error AlreadyOpen()', 'error NotOpen()', 'error Closed()', 'error NoVerdict()', 'error NothingToClaim()',
 ]);
 
 const args = process.argv.slice(2);
 const [cmd, idArg, side, eth] = args.filter((a) => !a.startsWith('--'));
-const account = privateKeyToAccount(args.includes('--as2') ? process.env.EVM2_PRIVATE_KEY : process.env.EVM_PRIVATE_KEY);
+const account = privateKeyToAccount(cmd !== 'open' && args.includes('--as2') ? process.env.EVM2_PRIVATE_KEY : process.env.EVM_PRIVATE_KEY);
 const transport = http(process.env.EVM_RPC_URL || 'https://sepolia.base.org');
 const pub = createPublicClient({ chain: baseSepolia, transport });
 const wallet = createWalletClient({ account, chain: baseSepolia, transport });

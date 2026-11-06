@@ -3,10 +3,12 @@
 //   Intel TDX quote valid -> report_data binds the signing key and our fresh nonce
 //   -> NVIDIA NRAS verifies the GPU (JWT signature checked against NVIDIA's keys, same nonce)
 //   -> sha256 of the docker compose matches mr_config in the verified quote.
+// NRAS answers 403 to some networks; the GPU checks are then SKIPPED and the key is not
+// registered unless --allow-gpu-skip is given (the TDX checks alone still bind it to the VM).
 // Logic follows github.com/nearai/nearai-cloud-verifier (ts/model_verifier.ts).
-// Run: node --env-file=../.env attest.mjs [--register] [model ...]
+// Run: node --env-file=../.env attest.mjs [--register [--allow-gpu-skip]] [model ...]
 import { createHash, randomBytes } from 'node:crypto';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { js_get_collateral, js_verify } from '@phala/dcap-qvl-node';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
@@ -14,6 +16,7 @@ export const PANEL = ['z-ai/glm-5.3-flash', 'Qwen/Qwen3.6-35B-A3B-FP8', 'Qwen/Qw
 const PCCS = 'https://api.trustedservices.intel.com/tdx/certification/v4';
 const NRAS = 'https://nras.attestation.nvidia.com/v3/attest/gpu';
 const NVIDIA_JWKS = createRemoteJWKSet(new URL('https://nras.attestation.nvidia.com/.well-known/jwks.json'));
+const NRAS_CHECK = 'NVIDIA NRAS verdict (signed JWT)';
 
 async function tdx(quoteHex) {
   const quote = Buffer.from(quoteHex, 'hex');
@@ -26,9 +29,9 @@ async function tdx(quoteHex) {
 async function gpu(payloadJson, nonce) {
   const payload = JSON.parse(payloadJson);
   const res = await fetch(NRAS, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload) });
-  // NVIDIA answers 403 to some networks (VPNs, some countries). Report the check as skipped
-  // instead of failing: the TDX quote alone already binds the key to the confidential VM.
-  if (res.status === 403) return { payloadNonce: payload.nonce?.toLowerCase() === nonce, verdict: null, eatNonce: null };
+  // NVIDIA answers 403 to some networks (VPNs, some countries): report the GPU checks as
+  // skipped (null), not passed. The nonce in the unverified payload proves nothing on its own.
+  if (res.status === 403) return { verdict: null };
   if (!res.ok) throw new Error(`NRAS ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const body = await res.json();
   const { payload: claims } = await jwtVerify(body[0][1], NVIDIA_JWKS, { issuer: 'https://nras.attestation.nvidia.com' });
@@ -58,11 +61,12 @@ export async function verifyModel(model, apiKey) {
       'Intel TDX quote valid': q.ok,
       'report_data binds signing key': rd.slice(0, 64) === key,
       'report_data binds our nonce': rd.slice(64, 128) === nonce,
-      'GPU evidence uses our nonce': g.payloadNonce && g.eatNonce !== false,
-      'NVIDIA NRAS verdict (signed JWT)': g.verdict, // null = NRAS unreachable from this network
+      'GPU evidence uses our nonce': g.verdict === null ? null : g.payloadNonce && g.eatNonce,
+      [NRAS_CHECK]: g.verdict, // null = NRAS unreachable from this network
       'compose hash matches mr_config': q.mrConfig.toLowerCase().startsWith('01' + composeHash),
     };
-    nodes.push({ key, tdxStatus: q.status, composeHash, checks, ok: Object.values(checks).every((v) => v !== false) });
+    // ok = nothing failed (skipped checks are null). appCompose is kept so anyone can review the images.
+    nodes.push({ key, tdxStatus: q.status, composeHash, appCompose: tcb.app_compose, checks, ok: Object.values(checks).every((v) => v !== false) });
   }
   return { model, nonce, at: new Date().toISOString(), nodes };
 }
@@ -70,6 +74,8 @@ export async function verifyModel(model, apiKey) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   const register = args.includes('--register');
+  const allowGpuSkip = args.includes('--allow-gpu-skip');
+  const contract = process.env.FORSETI_CONTRACT || 'forseti.testnet';
   const models = args.filter((a) => !a.startsWith('--'));
   const apiKey = process.env.NEARAI_API_KEY;
   if (!apiKey) throw new Error('NEARAI_API_KEY is not set in ../.env');
@@ -87,14 +93,24 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const n of r.nodes) {
       console.log(`  key ${n.key} (TDX ${n.tdxStatus})`);
       for (const [name, ok] of Object.entries(n.checks)) console.log(`    ${ok === null ? 'SKIP' : ok ? 'PASS' : 'FAIL'} ${name}`);
+      const failed = Object.keys(n.checks).filter((k) => n.checks[k] === false);
+      const skipped = Object.keys(n.checks).filter((k) => n.checks[k] === null);
+      console.log(`    => ${failed.length ? `FAILED: ${failed.join(', ')}` : skipped.length ? `no failures, SKIPPED: ${skipped.join(', ')}` : 'all checks passed'}`);
       allOk &&= n.ok;
-      if (register && n.ok) {
-        await near.call(process.env.FORSETI_CONTRACT, 'add_signer', { model, public_key: n.key }, { gas: '30 Tgas' });
-        console.log('    registered in', process.env.FORSETI_CONTRACT);
+      if (!register) continue;
+      if (n.ok && (n.checks[NRAS_CHECK] === true || allowGpuSkip)) {
+        await near.call(contract, 'add_signer', { model, public_key: n.key }, { gas: '30 Tgas' });
+        console.log(`    registered in ${contract}${n.checks[NRAS_CHECK] === true ? '' : ' (GPU not verified, --allow-gpu-skip)'}`);
+      } else {
+        console.log(`    NOT registered: ${failed.length ? 'a check failed' : 'NVIDIA did not verify the GPU (--allow-gpu-skip accepts that)'}`);
       }
     }
   }
-  // The web page shows these results next to each model's key.
-  writeFileSync('attestations.json', JSON.stringify(results, null, 2));
+  // The web page shows these results next to each model's key. Merged by model, so checking
+  // some models keeps the others' records.
+  const out = new URL('./attestations.json', import.meta.url);
+  const byModel = new Map((existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : []).map((r) => [r.model, r]));
+  for (const r of results) byModel.set(r.model, r);
+  writeFileSync(out, JSON.stringify([...byModel.values()], null, 2));
   process.exit(allOk ? 0 : 1);
 }

@@ -1,0 +1,513 @@
+[
+  {
+    "slug": "polymarket-seahawks-super-bowl-lx",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/super-bowl-champion-2026-731/will-the-seattle-seahawks-win-super-bowl-2026",
+    "title_on_platform": "Will the Seattle Seahawks win Super Bowl 2026?",
+    "category": "sports",
+    "closed": "2026-02-09",
+    "platform_outcome": "Yes",
+    "volume": "$15.3M",
+    "question": "Did the Seattle Seahawks win Super Bowl LX, the NFL championship game of the 2025 season played on February 8, 2026?",
+    "rules": "YES if the Seattle Seahawks won Super Bowl LX; NO if any other team won it. Source espn is ESPN's NFL scoreboard for 8 February 2026, cut to the first game of that day. Check that the game is Super Bowl LX (notes headline \"Super Bowl LX\") and that it is over (status type name STATUS_FINAL, completed true). Each entry in competitors is one team: team.displayName names it, score is its final points and winner is true for the team that won. YES if the competitor whose displayName is \"Seattle Seahawks\" has \"winner\":true, otherwise NO. The original market named no specific source and followed the official NFL result; ESPN's results feed stands in for it here.",
+    "sources": [
+      {
+        "id": "espn",
+        "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=20260208",
+        "extract": "$.events.0"
+      }
+    ],
+    "deciding_text": [
+      "\"headline\":\"Super Bowl LX\"",
+      "\"homeAway\":\"away\",\"winner\":true,\"team\":{\"id\":\"26\",\"uid\":\"s:20~l:28~t:26\",\"location\":\"Seattle\""
+    ],
+    "contested": false
+  },
+  {
+    "slug": "polymarket-spain-world-cup-2026",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/world-cup-winner/will-spain-win-the-2026-fifa-world-cup-963",
+    "title_on_platform": "Will Spain win the 2026 FIFA World Cup?",
+    "category": "sports",
+    "closed": "2026-07-20",
+    "platform_outcome": "Yes",
+    "volume": "$152.2M",
+    "question": "Did Spain win the 2026 FIFA World Cup?",
+    "rules": "YES if Spain is the national team that won the 2026 FIFA World Cup; NO if another team won it. Source espn is ESPN's FIFA World Cup scoreboard for 19 July 2026, cut to the first match of that day. Check that altGameNote reads \"FIFA World Cup, Final\" and that the match is over (status type completed true; STATUS_FINAL, STATUS_FINAL_AET after extra time or STATUS_FINAL_PEN after a shootout all count). The competitor with \"winner\":true is the champion; extra time and penalty shootouts are included. YES if that competitor's displayName is \"Spain\", otherwise NO. The original market followed official FIFA information or a consensus of credible reporting; ESPN's results feed stands in for it here.",
+    "sources": [
+      {
+        "id": "espn",
+        "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260719",
+        "extract": "$.events.0.competitions.0"
+      }
+    ],
+    "deciding_text": [
+      "\"altGameNote\":\"FIFA World Cup, Final\"",
+      "\"winner\":true,\"form\":\"DWWWW\",\"score\":\"1\",\"team\":{\"id\":\"164\",\"uid\":\"s:600~t:164\",\"abbreviation\":\"ESP\",\"displayName\":\"Spain\"",
+      "\"name\":\"STATUS_FINAL_AET\""
+    ],
+    "contested": false
+  },
+  {
+    "slug": "polymarket-btc-above-66k-feb-23-2026",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/bitcoin-above-on-february-23/bitcoin-above-66k-on-february-23",
+    "title_on_platform": "Will the price of Bitcoin be above $66,000 on February 23?",
+    "category": "crypto",
+    "closed": "2026-02-23",
+    "platform_outcome": "No",
+    "volume": "$938K",
+    "question": "Did the Binance BTC/USDT 1-minute candle for 12:00 noon ET on February 23, 2026 close above $66,000?",
+    "rules": "YES if the final Close price of the Binance BTC/USDT one-minute candle that opens at 12:00 noon New York time on 23 February 2026 is strictly higher than 66,000; otherwise NO. Only Binance BTC/USDT counts, not other exchanges or pairs. Noon ET on that date is 17:00 UTC, openTime 1771866000000 (milliseconds). Source binance returns exactly that candle as a JSON array: [openTime, open, high, low, close, volume, closeTime, quoteVolume, trades, ...]. Check that the first element is 1771866000000, then compare the fifth element (close) with 66000. Prices are quoted in USDT with the decimals Binance gives.",
+    "sources": [
+      {
+        "id": "binance",
+        "url": "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&startTime=1771866000000&limit=1",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "[[1771866000000,\"65364.66000000\",\"65433.97000000\",\"65364.65000000\",\"65413.50000000\""
+    ],
+    "contested": false
+  },
+  {
+    "slug": "polymarket-eth-5000-in-2025",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/what-price-will-ethereum-hit-in-2025/will-ethereum-hit-5000-by-december-31-796-376",
+    "title_on_platform": "Will Ethereum hit $5,000 by December 31?",
+    "category": "crypto",
+    "closed": "2026-01-01",
+    "platform_outcome": "No",
+    "volume": "$18.5M",
+    "question": "Did any Binance ETH/USDT 1-minute candle between December 30, 2024, 21:00 ET and December 31, 2025, 23:59 ET reach a High of $5,000 or more?",
+    "rules": "YES if any Binance ETH/USDT one-minute candle in the window from 30 December 2024 21:00 ET to 31 December 2025 23:59 ET has a final High of 5,000.00 or more; otherwise NO. Only Binance ETH/USDT counts. Source binance lists 53 weekly candles (interval 1w) starting Monday 30 December 2024 00:00 UTC, which together cover the whole window and a few days around it. Each row is [openTime, open, high, low, close, volume, closeTime, ...]; the third element (high) is the highest one-minute High of that week. If every weekly high is below 5000, no one-minute candle in the window reached 5000 and the answer is NO. If a weekly high is 5000 or more, answer YES, unless that week is the first or last row and the window only partly covers it; in that case the weekly data cannot settle it, so answer INVALID.",
+    "sources": [
+      {
+        "id": "binance",
+        "url": "https://api.binance.com/api/v3/klines?symbol=ETHUSDT&interval=1w&startTime=1735516800000&limit=53",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "[1755475200000,\"4472.34000000\",\"4956.78000000\""
+    ],
+    "contested": false
+  },
+  {
+    "slug": "polymarket-nyc-high-50-51f-nov-15-2025",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/highest-temperature-in-nyc-on-november-15/will-the-highest-temperature-in-new-york-city-be-between-50-51f-on-november-15",
+    "title_on_platform": "Will the highest temperature in New York City be between 50-51°F on November 15?",
+    "category": "weather",
+    "closed": "2025-11-16",
+    "platform_outcome": "Yes",
+    "volume": "$68K",
+    "question": "Was the highest temperature recorded at New York's LaGuardia Airport station on November 15, 2025 between 50°F and 51°F inclusive?",
+    "rules": "Temperatures are whole degrees Fahrenheit. YES if the highest temperature recorded at the LaGuardia Airport station (KLGA) on 15 November 2025 was 50 or 51 °F; otherwise NO. Later revisions are ignored. The original market resolved on the Weather Underground daily history page for KLGA, which needs JavaScript; this replay substitutes two machine-readable records from the same station. Source nws_cli is the National Weather Service climate report CLILGA for 15 November 2025, issued early on 16 November: read TEMPERATURE (F), YESTERDAY, MAXIMUM, whose first number is the day's high. Source asos is the Iowa Environmental Mesonet daily summary of the LGA airport weather observations (the same hourly METAR reports Weather Underground shows); its max_tmpf field is the day's high. If the two differ, use asos.",
+    "sources": [
+      {
+        "id": "nws_cli",
+        "url": "https://mesonet.agron.iastate.edu/cgi-bin/afos/retrieve.py?pil=CLILGA&sdate=2025-11-16T06:00Z&edate=2025-11-16T18:00Z&fmt=text&limit=1",
+        "extract": ""
+      },
+      {
+        "id": "asos",
+        "url": "https://mesonet.agron.iastate.edu/api/1/daily.json?station=LGA&network=NY_ASOS&date=2025-11-15",
+        "extract": "$.data"
+      }
+    ],
+    "deciding_text": [
+      "CLIMATE SUMMARY FOR NOVEMBER 15 2025",
+      "MAXIMUM 51 1159 PM",
+      "\"date\":\"2025-11-15\",\"max_tmpf\":51"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "polymarket-fed-cut-25bps-dec-2025",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/fed-decision-in-december/fed-decreases-interest-rates-by-25-bps-after-december-2025-meeting",
+    "title_on_platform": "Fed decreases interest rates by 25 bps after December 2025 meeting?",
+    "category": "macro",
+    "closed": "2025-12-10",
+    "platform_outcome": "Yes",
+    "volume": "$54.6M",
+    "question": "Did the Federal Reserve lower the upper bound of the federal funds target range by 25 basis points at its December 9–10, 2025 FOMC meeting?",
+    "rules": "The rate is the upper bound of the federal funds target range set by the FOMC. YES if the December 9–10, 2025 meeting cut that upper bound by 25 basis points compared with its level before the meeting; NO for a hold, a hike or a cut of any other size. A change that is not a multiple of 25 basis points is rounded up to the next 25 (for example 12.5 counts as 25). Source fomc is the Federal Reserve press release carrying the FOMC statement of 10 December 2025. The sentence saying the Committee decided to raise, lower or maintain the target range decides it: \"lower ... by 1/4 percentage point\" means a 25 basis point cut and YES.",
+    "sources": [
+      {
+        "id": "fomc",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20251210a.htm",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "the Committee decided to lower the target range for the federal funds rate by 1/4 percentage point"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "polymarket-mamdani-nyc-mayor-2025",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/new-york-city-mayoral-election/will-zohran-mamdani-win-the-2025-nyc-mayoral-election",
+    "title_on_platform": "Will Zohran Mamdani win the 2025 NYC mayoral election?",
+    "category": "politics",
+    "closed": "2025-11-05",
+    "platform_outcome": "Yes",
+    "volume": "$143.3M",
+    "question": "Did Zohran Mamdani win the November 4, 2025 New York City mayoral election?",
+    "rules": "YES if Zohran Mamdani won the 2025 New York City mayoral election held on 4 November 2025; NO if another candidate won. The original market resolved once the Associated Press, Fox News and NBC all called the race for the same candidate, or else on official certification. Those calls are not machine-readable, so source wiki, the introduction of Wikipedia's article on the 2025 New York City mayoral election, stands in: it reports the called and certified result. YES if it states that Mamdani won the election; NO if it names someone else as the winner.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&formatversion=2&redirects=1&exintro=1&titles=2025_New_York_City_mayoral_election",
+        "extract": "$.query.pages.0.extract"
+      }
+    ],
+    "deciding_text": [
+      "Zohran Mamdani won the election with 50.78% of the vote"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "polymarket-orban-next-hungary-pm",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/next-prime-minister-of-hungary/will-the-next-prime-minister-of-hungary-be-viktor-orbn",
+    "title_on_platform": "Will the next Prime Minister of Hungary be Viktor Orbán?",
+    "category": "politics",
+    "closed": "2026-05-09",
+    "platform_outcome": "No",
+    "volume": "$25.5M",
+    "question": "Was Viktor Orbán the person formally elected and appointed Prime Minister of Hungary after the April 12, 2026 parliamentary election?",
+    "rules": "The question is about the person who is next formally elected by the National Assembly and appointed Prime Minister of Hungary after the parliamentary election of 12 April 2026. Interim or caretaker prime ministers do not count. YES if that person is Viktor Orbán; NO if it is anyone else (or if nobody is confirmed by 31 December 2026). The original market used official information from the Government of Hungary or a consensus of credible reporting; Wikipedia stands in here. Source pm_office is the introduction of Wikipedia's \"Prime Minister of Hungary\" article, which names the current holder of the office and the date they took it. Source election is the introduction of Wikipedia's article on the 2026 Hungarian parliamentary election. If the current holder has served since a date after 12 April 2026, that person is the one this question is about.",
+    "sources": [
+      {
+        "id": "pm_office",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&formatversion=2&redirects=1&exintro=1&titles=Prime_Minister_of_Hungary",
+        "extract": "$.query.pages.0.extract"
+      },
+      {
+        "id": "election",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&formatversion=2&redirects=1&exintro=1&titles=2026_Hungarian_parliamentary_election",
+        "extract": "$.query.pages.0.extract"
+      }
+    ],
+    "deciding_text": [
+      "The current holder of the office is Péter Magyar, who has served since 9 May 2026.",
+      "Viktor Orbán was defeated in a landslide by the opposition Tisza Party"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "polymarket-sinners-best-picture-2026",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/oscars-2026-best-picture-winner/will-sinners-win-best-picture-at-the-98th-academy-awards",
+    "title_on_platform": "Will Sinners win Best Picture at the 98th Academy Awards?",
+    "category": "culture",
+    "closed": "2026-03-16",
+    "platform_outcome": "No",
+    "volume": "$2.9M",
+    "question": "Did Sinners win Best Picture at the 98th Academy Awards, held on March 15, 2026?",
+    "rules": "YES if Sinners won the Academy Award for Best Picture at the 98th Academy Awards (ceremony of 15 March 2026); NO if another film won it. If two films tie, the platform counts the one whose name comes first alphabetically. The original market followed official information from AMPAS and the ceremony broadcast, or a consensus of credible reporting. Source wiki, the introduction of Wikipedia's article on the 98th Academy Awards, stands in for it: it names the Best Picture winner. YES only if it says Sinners won Best Picture.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&formatversion=2&redirects=1&exintro=1&titles=98th_Academy_Awards",
+        "extract": "$.query.pages.0.extract"
+      }
+    ],
+    "deciding_text": [
+      "One Battle After Another won the most awards with six, including Best Picture",
+      "Sinners received a record sixteen nominations and won four awards"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "polymarket-openai-browser-oct-2025",
+    "platform": "Polymarket",
+    "url": "https://polymarket.com/event/openai-browser-by-october-31",
+    "title_on_platform": "OpenAI browser by October 31?",
+    "category": "tech",
+    "closed": "2025-10-21",
+    "platform_outcome": "Yes",
+    "volume": "$5.5M",
+    "question": "Did OpenAI publicly release a standalone web browser, open to the general public in at least one country, by October 31, 2025, 11:59 PM ET?",
+    "rules": "YES if, by 31 October 2025 at 11:59 PM ET, OpenAI publicly released a standalone web browser for general web browsing that anyone in at least one country or region could use; otherwise NO. An open beta or an open, rolling free waitlist counts; a closed beta or any private access does not. Browser extensions, plugins or integrations inside other browsers do not count: it must be a standalone browser application announced by OpenAI as available to the public. The original market relied on official OpenAI announcements; openai.com blocks automated fetches, so source wiki, the plain text of Wikipedia's article on ChatGPT Atlas, stands in. YES if it shows that OpenAI released such a browser to the public on or before 31 October 2025.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&formatversion=2&redirects=1&titles=ChatGPT_Atlas",
+        "extract": "$.query.pages.0.extract"
+      }
+    ],
+    "deciding_text": [
+      "On October 21, 2025, OpenAI announced ChatGPT Atlas and released it for macOS."
+    ],
+    "contested": false
+  },
+  {
+    "slug": "kalshi-brewers-world-series-2026",
+    "platform": "Kalshi",
+    "url": "https://kalshi.com/markets/kxmlb/world-series/kxmlb-26",
+    "title_on_platform": "Will Milwaukee win the 2026 Pro Baseball Championship?",
+    "category": "sports",
+    "closed": "2026-10-29",
+    "platform_outcome": "Yes",
+    "volume": "15.6M contracts",
+    "question": "Did the Milwaukee Brewers win the 2026 World Series, Major League Baseball's championship?",
+    "rules": "YES if the Milwaukee Brewers won the 2026 World Series, the championship series of the 2026 Major League Baseball season; NO if any other team won it. Kalshi settles this from sports reporting (ESPN, Fox Sports, AP). Source wiki, the introduction of Wikipedia's article on the 2026 World Series, stands in: it names the two pennant winners and the series winner. YES if it says the Brewers won the series.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&formatversion=2&redirects=1&exintro=1&titles=2026_World_Series",
+        "extract": "$.query.pages.0.extract"
+      }
+    ],
+    "deciding_text": [
+      "The Brewers defeated the Rays in five games to win their first championship in franchise history."
+    ],
+    "contested": false
+  },
+  {
+    "slug": "kalshi-kane-ballon-dor-2026",
+    "platform": "Kalshi",
+    "url": "https://kalshi.com/markets/kxballondor/ballon-dor/kxballondor-26",
+    "title_on_platform": "Who will win the Ballon d'Or in 2026? (Harry Kane)",
+    "category": "sports",
+    "closed": "2026-10-26",
+    "platform_outcome": "Yes",
+    "volume": "7.2M contracts",
+    "question": "Did Harry Kane win the 2026 men's Ballon d'Or?",
+    "rules": "YES if Harry Kane won the 2026 Ballon d'Or, the men's award presented by France Football; NO if another player won it. The women's award does not matter here. Kalshi settles this from news reporting. Source wiki, the introduction of Wikipedia's article on the 2026 Ballon d'Or, stands in: it names the men's winner and the runners-up. YES if it says Harry Kane won the men's Ballon d'Or.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&formatversion=2&redirects=1&exintro=1&titles=2026_Ballon_d%27Or",
+        "extract": "$.query.pages.0.extract"
+      }
+    ],
+    "deciding_text": [
+      "Bayern Munich forward Harry Kane won the Men's Ballon d'Or"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "kalshi-trump-nobel-peace-2026",
+    "platform": "Kalshi",
+    "url": "https://kalshi.com/markets/kxnobelpeace/nobel-peace-prize/kxnobelpeace-26",
+    "title_on_platform": "Who will win the Nobel Peace Prize? (Donald Trump, 2026)",
+    "category": "culture",
+    "closed": "2026-10-09",
+    "platform_outcome": "No",
+    "volume": "3.1M contracts",
+    "question": "Was Donald Trump awarded the 2026 Nobel Peace Prize?",
+    "rules": "YES if Donald Trump is named a laureate of the 2026 Nobel Peace Prize, alone or shared; NO otherwise. Kalshi settles this from nobelprize.org. Source nobel is the official press release for the 2026 Nobel Peace Prize on nobelprize.org: the sentence stating that the Norwegian Nobel Committee has decided to award the Nobel Peace Prize for 2026 names the laureate(s). YES only if Donald Trump is among them.",
+    "sources": [
+      {
+        "id": "nobel",
+        "url": "https://www.nobelprize.org/prizes/peace/2026/press-release/",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "The Norwegian Nobel Committee has decided to award the Nobel Peace Prize for 2026 to Navanethem “Navi” Pillay"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "kalshi-gemini-4-before-oct-16-2026",
+    "platform": "Kalshi",
+    "url": "https://kalshi.com/markets/kxgemini/gemini-release-date/kxgemini-gem4",
+    "title_on_platform": "Will Google release Gemini 4 before Oct 16, 2026?",
+    "category": "tech",
+    "closed": "2026-10-13",
+    "platform_outcome": "Yes",
+    "volume": "231K contracts",
+    "question": "Did Google publicly release a Gemini 4 model before October 16, 2026?",
+    "rules": "YES if Google released Gemini 4 (any model Google names Gemini 4) to the public before 16 October 2026; otherwise NO. The release must be public and outside a closed beta; limiting it to an expensive subscription tier still counts, but a limited preview or invite-only early-access programme does not. Source wiki is the wikitext of the \"Model versions\" section of Wikipedia's Gemini (language model) article: a table with each model, its release date, its status and a note on how it was released. Source card is Google DeepMind's model card for Gemini 4 Argon, which shows when it was published. YES if a Gemini 4 model became generally (publicly) available on or before 15 October 2026.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=parse&page=Gemini_(language_model)&section=5&prop=wikitext&format=json",
+        "extract": "$.parse.wikitext.*"
+      },
+      {
+        "id": "card",
+        "url": "https://deepmind.google/models/model-cards/gemini-4-argon/",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "generally available since {{date|2026-10-13}}",
+      "Published 13 October 2026 Gemini 4 Argon"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "kalshi-fed-hold-sep-2026",
+    "platform": "Kalshi",
+    "url": "https://kalshi.com/markets/kxfeddecision/fed-meeting/kxfeddecision-26sep",
+    "title_on_platform": "Will the Federal Reserve Hike rates by 0bps at their September 2026 meeting? (Fed maintains rate)",
+    "category": "macro",
+    "closed": "2026-09-16",
+    "platform_outcome": "No",
+    "volume": "48.3M contracts",
+    "question": "Did the Federal Reserve leave the federal funds target range unchanged at its September 16, 2026 FOMC meeting?",
+    "rules": "This is the \"Fed maintains rate\" bucket of a set of mutually exclusive outcomes for the FOMC decision of 16 September 2026. YES if the Committee left the target range for the federal funds rate unchanged; NO if it raised or lowered it by any amount. If the scheduled meeting were cancelled and did not take place, the platform counts that as YES. Source fomc is the Federal Reserve press release carrying the FOMC statement of 16 September 2026. The sentence saying the Committee decided to raise, lower or maintain the target range decides it.",
+    "sources": [
+      {
+        "id": "fomc",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "The Committee decided to raise the target range for the federal funds rate by 1/4 percentage point to 3-3/4 to 4 percent"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "kalshi-cpi-yoy-above-3-4-aug-2026",
+    "platform": "Kalshi",
+    "url": "https://kalshi.com/markets/kxcpiyoy/inflation/kxcpiyoy-26aug",
+    "title_on_platform": "Will the rate of CPI inflation be above 3.4% for the year ending in August 2026?",
+    "category": "macro",
+    "closed": "2026-09-11",
+    "platform_outcome": "No",
+    "volume": "217K contracts",
+    "question": "Did US consumer prices (CPI-U, all items) rise by more than 3.4% in the 12 months ending August 2026, as reported by the BLS?",
+    "rules": "YES if the Consumer Price Index rose by more than 3.4 percent over the twelve months ending August 2026, using the one-decimal figure the Bureau of Labor Statistics publishes; NO if that figure is 3.4 or lower (exactly 3.4 is NO). The figure is the all-items CPI-U before seasonal adjustment; ignore the chained C-CPI-U, the core index and the monthly change. Source bls is the archived BLS CPI news release of 11 September 2026 (first 32 KB); the sentence \"Over the last 12 months, the all items index increased X percent before seasonal adjustment\" gives the figure.",
+    "sources": [
+      {
+        "id": "bls",
+        "url": "https://www.bls.gov/news.release/archives/cpi_09112026.htm",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "Over the last 12 months, the all",
+      "items index increased 3.4 percent before seasonal adjustment."
+    ],
+    "contested": false
+  },
+  {
+    "slug": "kalshi-bills-at-rams-oct-12-2026",
+    "platform": "Kalshi",
+    "url": "https://kalshi.com/markets/kxnflgame/nfl-game/kxnflgame-26oct12buflar",
+    "title_on_platform": "Buffalo wins (BUF Bills vs LA Rams, Oct 12, 2026)",
+    "category": "sports",
+    "closed": "2026-10-13",
+    "platform_outcome": "Yes",
+    "volume": "57.5M contracts",
+    "question": "Did the Buffalo Bills win their NFL game at the Los Angeles Rams originally scheduled for October 12, 2026?",
+    "rules": "YES if the Buffalo Bills won the Bills vs Rams NFL game originally scheduled for 12 October 2026, including overtime; NO if the Rams won. A tied game settles at 50/50 on the platform, so answer INVALID if it ended in a tie. A game postponed but started within 48 hours of its scheduled start still counts. Source espn is ESPN's NFL scoreboard for 12 October 2026 (US date), cut to the first game of that day, \"Buffalo Bills at Los Angeles Rams\". Check that the status type is STATUS_FINAL (completed true; detail may read Final/OT). Each entry in competitors is one team with its final score and a winner flag; YES if the competitor whose displayName is \"Buffalo Bills\" has \"winner\":true.",
+    "sources": [
+      {
+        "id": "espn",
+        "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=20261012",
+        "extract": "$.events.0"
+      }
+    ],
+    "deciding_text": [
+      "\"name\":\"Buffalo Bills at Los Angeles Rams\"",
+      "\"homeAway\":\"away\",\"winner\":true,\"team\":{\"id\":\"2\",\"uid\":\"s:20~l:28~t:2\",\"location\":\"Buffalo\"",
+      "\"detail\":\"Final/OT\""
+    ],
+    "contested": false
+  },
+  {
+    "slug": "kalshi-la-high-81-82f-sep-15-2026",
+    "platform": "Kalshi",
+    "url": "https://kalshi.com/markets/kxhighlax/highest-temperature-in-los-angeles/kxhighlax-26sep15",
+    "title_on_platform": "Will the maximum temperature be 81-82° on Sep 15, 2026? (Los Angeles)",
+    "category": "weather",
+    "closed": "2026-09-16",
+    "platform_outcome": "Yes",
+    "volume": "403K contracts",
+    "question": "Was the maximum temperature at Los Angeles International Airport on September 15, 2026 between 81°F and 82°F inclusive, per the NWS climate report CLILAX?",
+    "rules": "YES if the maximum temperature recorded at Los Angeles International Airport (the NWS climate report CLILAX) for 15 September 2026 was 81 or 82 °F; otherwise NO. Kalshi reads this value as published by The Weather Company; this replay reads the underlying National Weather Service report directly. Source nws_cli is the final CLILAX climate report for 15 September 2026, issued by NWS Los Angeles/Oxnard early on 16 September and fetched from the Iowa Environmental Mesonet text archive. Read TEMPERATURE (F), YESTERDAY, MAXIMUM: the first number is the day's high in whole degrees Fahrenheit.",
+    "sources": [
+      {
+        "id": "nws_cli",
+        "url": "https://mesonet.agron.iastate.edu/cgi-bin/afos/retrieve.py?pil=CLILAX&sdate=2026-09-16T06:00Z&edate=2026-09-16T18:00Z&fmt=text&limit=1",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "CLIMATE SUMMARY FOR SEPTEMBER 15 2026",
+      "MAXIMUM 81 12:51 PM"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "manifold-gop-senate-2026",
+    "platform": "Manifold",
+    "url": "https://manifold.markets/AndrewG/will-republicans-win-the-senate-in-738388924521",
+    "title_on_platform": "Will Republicans win the Senate in the 2026 elections?",
+    "category": "politics",
+    "closed": "2026-11-04",
+    "platform_outcome": "No",
+    "volume": "M$1.34M play money, 985 traders",
+    "question": "Did Republicans win control of the US Senate in the November 3, 2026 elections (at least 51 seats, or 50 with a Republican Vice President)?",
+    "rules": "YES if, after the 2026 United States elections, Republicans hold at least 51 Senate seats, or 50 seats with a Republican Vice President to break ties; NO otherwise. An independent or third-party senator counts as a Republican only if widely expected to caucus with the Republicans (so independents caucusing with Democrats count for the Democratic caucus). Source wiki is the introduction of Wikipedia's article on the 2026 United States Senate elections, which reports the projected and called seat totals. NO if it reports that the Democratic caucus has won or is projected to hold a majority of 51 or more seats; YES if it reports Republicans at 51 or more, or at 50 with a Republican Vice President. If it says control is still undecided, answer TOO_EARLY.",
+    "sources": [
+      {
+        "id": "wiki",
+        "url": "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&formatversion=2&redirects=1&exintro=1&titles=2026_United_States_Senate_elections",
+        "extract": "$.query.pages.0.extract"
+      }
+    ],
+    "deciding_text": [
+      "The Senate Democratic Caucus is projected to have gained a majority, winning at least 54 seats"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "manifold-global-temp-2025-vs-2024",
+    "platform": "Manifold",
+    "url": "https://manifold.markets/AmmonLam/will-the-average-global-temperature-8ec95601c0fd",
+    "title_on_platform": "Will the average global temperature in 2025 exceed 2024?",
+    "category": "weather",
+    "closed": "2026-01-17",
+    "platform_outcome": "No",
+    "volume": "M$81K play money, 172 traders",
+    "question": "Was the 2025 global average temperature anomaly higher than 2024's in Our World in Data's temperature-anomaly dataset?",
+    "rules": "Use the mean (\"Average\") global temperature anomaly for the World shown on Our World in Data's temperature-anomaly chart. YES if the 2025 value is higher than the 2024 value; NO if it is lower. An exact tie settles at 50% on the platform, so answer INVALID for a tie. Source owid is the CSV download of that same chart, filtered to the World: columns Entity, Code, Year, Average, Lower bound, Upper bound. Compare the Average column of the rows for Year 2024 and Year 2025; ignore the bounds and any partial-year row for 2026.",
+    "sources": [
+      {
+        "id": "owid",
+        "url": "https://ourworldindata.org/grapher/temperature-anomaly.csv?csvType=filtered&country=~World",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "World,OWID_WRL,2024,1.5329651",
+      "World,OWID_WRL,2025,1.4119903"
+    ],
+    "contested": false
+  },
+  {
+    "slug": "manifold-btc-110k-may-2025",
+    "platform": "Manifold",
+    "url": "https://manifold.markets/brod/will-bitcoin-reach-110k-in-may",
+    "title_on_platform": "Will Bitcoin reach $110k in May?",
+    "category": "crypto",
+    "closed": "2025-05-21",
+    "platform_outcome": "Yes",
+    "volume": "M$237K play money, 304 traders",
+    "question": "Did any Binance BTC/USDT 1-minute candle reach a High of $110,000 or more after the market opened on May 9, 2025 and by May 31, 2025, 11:59 PM ET?",
+    "rules": "YES if the High of any one-minute candle on Binance's BTC/USDT market equals or exceeds 110,000.00 USDT between the market's creation (9 May 2025, 07:08 UTC) and 31 May 2025 at 11:59 PM ET; otherwise NO. Only Binance BTC/USDT counts. Source binance lists the 22 daily candles (interval 1d, UTC days) from 10 May through 31 May 2025, all inside that window. Each row is [openTime, open, high, low, close, volume, closeTime, ...]; the third element (high) is the highest one-minute High of that day. YES if any daily high is 110000 or more. If none is, answer NO; the slivers of the window outside these days (9 May after 07:08 UTC and 1 June before 04:00 UTC) are not covered by this replay.",
+    "sources": [
+      {
+        "id": "binance",
+        "url": "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1746835200000&limit=22",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "[1747785600000,\"106850.00000000\",\"110797.38000000\""
+    ],
+    "contested": false
+  }
+]

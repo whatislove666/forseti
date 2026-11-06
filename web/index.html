@@ -4,22 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Forseti</title>
-  <meta name="description" content="Prediction market judges fixed before trading. Every verdict is checked on NEAR and can be verified in your browser.">
+  <meta name="description" content="Prediction markets whose judge is fixed before trading. Every verdict is checked on NEAR, and you can check it again in your browser.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <link rel="icon" href="design/forseti-mark.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@1,6..72,400&display=swap">
+  <link rel="stylesheet" href="design/tokens.css">
+  <link rel="stylesheet" href="design/forseti.css">
   <link rel="stylesheet" href="style.css">
+  <script src="design/forseti.js"></script>
   <script type="module" src="app.js"></script>
 </head>
 <body>
   <header class="masthead">
-    <a class="wordmark" href="#/">Forseti</a>
-    <p class="tagline">A judge fixed before trading. Every verdict is checked on NEAR and can be verified right here.</p>
-    <p class="network"><span class="dot" aria-hidden="true"></span><span id="network">NEAR testnet, Base Sepolia</span></p>
+    <a class="fs-lockup" href="#/" id="lockup" aria-label="Forseti home"><span class="fs-lockup-word">Forseti</span></a>
+    <nav class="nav"><a href="#/docs" data-nav="docs">Docs</a><a href="#/roadmap" data-nav="roadmap">Roadmap</a><a class="nav-cta" href="#/markets" data-nav="markets">Verify</a></nav>
   </header>
-  <main id="app" tabindex="-1"><p class="muted">Loading markets from NEAR…</p></main>
+  <main id="app" tabindex="-1"></main>
   <footer class="foot">
-    <p>Contract <a href="https://testnet.nearblocks.io/address/forseti.testnet">forseti.testnet</a>. Verdicts on Base Sepolia at <a href="https://sepolia.basescan.org/address/0x374541e22a7406E8246D0774E8994fc358232121">0x3745…2121</a>. Built at NEAR HACKATHON.</p>
+    <p>Runs on the NEAR testnet contract <a href="https://testnet.nearblocks.io/address/forseti.testnet">forseti.testnet</a>, with verdicts delivered to <a href="https://sepolia.basescan.org/address/0x374541e22a7406E8246D0774E8994fc358232121">Base Sepolia</a>. Built at NEAR HACKATHON.</p>
   </footer>
 </body>
 </html>

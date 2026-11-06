@@ -1,0 +1,25 @@
+[
+  {
+    "slug": "manifold-btc-110k-may-2025-strict",
+    "platform": "Manifold",
+    "url": "https://manifold.markets/brod/will-bitcoin-reach-110k-in-may",
+    "title_on_platform": "Will Bitcoin reach $110k in May?",
+    "category": "crypto",
+    "closed": "2025-05-21",
+    "platform_outcome": "Yes",
+    "volume": "M$237K play money, 304 traders",
+    "question": "Did any Binance BTC/USDT 1-minute candle reach a High of $110,000 or more after the market opened on May 9, 2025 and by May 31, 2025, 11:59 PM ET?",
+    "rules": "YES if the High of any one-minute candle on Binance's BTC/USDT market equals or exceeds 110,000.00 USDT between the market's creation (9 May 2025, 07:08 UTC) and 31 May 2025 at 11:59 PM ET; otherwise NO. Only Binance BTC/USDT counts. Source binance lists the 22 daily candles (interval 1d, UTC days) from 10 May through 31 May 2025, all inside that window. Each row is [openTime, open, high, low, close, volume, closeTime, ...]; the third element (high) is the highest one-minute High of that day. YES if any daily high is 110000 or more. If none is, answer NO; the slivers of the window outside these days (9 May after 07:08 UTC and 1 June before 04:00 UTC) are not covered by this replay.",
+    "sources": [
+      {
+        "id": "binance",
+        "url": "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1746835200000&limit=22",
+        "extract": ""
+      }
+    ],
+    "deciding_text": [
+      "[1747785600000,\"106850.00000000\",\"110797.38000000\""
+    ],
+    "contested": false
+  }
+]

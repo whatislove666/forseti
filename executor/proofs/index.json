@@ -56,12 +56,164 @@
     "response_sha256": "dbc969c2bb87d3ed8d5a18e9c6aa25e679883ada7ee8ba73dc006222bba23339"
   },
   {
+    "file": "m10-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 10,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "e39fff8d5ad59d75a2c4856408cb95fa5cc35a330552f9c879bb9f1f3d8de42a"
+  },
+  {
+    "file": "m11-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 11,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "efdc06a800df6ccaabb6b724fe303bd1bc074f9288bce64cdec7ba4a54baf724"
+  },
+  {
+    "file": "m12-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 12,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "fe91c9c8cbba97a6e9a44c2c1ecee71c91aa55a0aa90d507ff4ef1126f2f5de8"
+  },
+  {
+    "file": "m13-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 13,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "9ad6eb7d29d91af54255dac0f226443fc9384b6188908d67e04c93fb9aa108e5"
+  },
+  {
+    "file": "m14-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 14,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "f0267b0c6ad5389ca93e06c6561936f6ee1c07d5ab1ca9c547e23801de229df9"
+  },
+  {
+    "file": "m15-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 15,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "0c105008b36fdcfb909ea9dba10d1d14a32219a0574a7494a9d5dadc745d6b45"
+  },
+  {
+    "file": "m16-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 16,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "113b26c31c7d760300d2383769e6ba86606eccf65be0348e9405a93210fec368"
+  },
+  {
+    "file": "m17-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 17,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "86b96334d25198ceee76a934a4d0b918ef4db74ac308ebd2292c88995f77ef3d"
+  },
+  {
+    "file": "m18-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 18,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "5bd7cded604d1871450ace580b20ed75fa53855ffb26058506f7654a3b54df4d"
+  },
+  {
+    "file": "m19-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 19,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "a9b4687e23ed90c41b75d0e302adabdc4d9236fb2f1c68037bcb0ad327fb9cb8"
+  },
+  {
     "file": "m2-r0-preview-z-ai-glm-5-3-flash.json",
     "market": 2,
     "round": 0,
     "kind": "preview",
     "model": "z-ai/glm-5.3-flash",
     "response_sha256": "d73c5694a48237cbc2fd4d80d967f07221937ee5cf2aa360572aafe5cfab16f4"
+  },
+  {
+    "file": "m20-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 20,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "9940e89b1787bb86be04ba6fe617f12c5dbb20110fe138bff74afd8c28446e67"
+  },
+  {
+    "file": "m21-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 21,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "d69cc82b5583db07f3fd75db04780dd89c24b05803192dbcc25a0900993d8420"
+  },
+  {
+    "file": "m22-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 22,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "c44e532c6fc881a8b7e17670f7f5291a6e63422891192b3f51dd5dfca52191ca"
+  },
+  {
+    "file": "m23-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 23,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "a5ef2941eb57246d95d877023c075a06276ae68d7111f8bcce7e4586a619f585"
+  },
+  {
+    "file": "m24-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 24,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "52cfc667077b3d093ee6695183d8d780b353059ee1ec80f6583e8fd0fb3159f5"
+  },
+  {
+    "file": "m25-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 25,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "b4e64e3fd72c6d4d52459093ca71ca83eecb57e84f97bc077097b4a821d0939c"
+  },
+  {
+    "file": "m26-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 26,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "9ca4fc9016e6a430ad573df0ff51867d5159fbbdc97cde20978763e2cd18529f"
+  },
+  {
+    "file": "m27-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 27,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "d60df909be1610969098a56727590e2ee7b7c6772be4ea78b2760b7286c05aba"
+  },
+  {
+    "file": "m28-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 28,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "c94f13504d28d8efabae6e58586236e15b975487151b86ad2729a548ab149a52"
   },
   {
     "file": "m3-r1-panel-Qwen-Qwen3-6-35B-A3B-FP8.json",
@@ -94,5 +246,165 @@
     "kind": "verdict",
     "model": "z-ai/glm-5.3-flash",
     "response_sha256": "3640fe8d0b97bbfac3922297b0d6b64d6489c473207d6153ae9cd87df0ebc5bd"
+  },
+  {
+    "file": "m30-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 30,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "ab58d49ac37abccdbe09fb4e3ad682ce51d2488a6b0f5dcca96662a8b6eb4260"
+  },
+  {
+    "file": "m4-r1-panel-Qwen-Qwen3-6-35B-A3B-FP8.json",
+    "market": 4,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+    "response_sha256": "4a61c946f0f8ec56ef68c5bcf7fc2f2d900053f484a0b578743a6db1c0633d19"
+  },
+  {
+    "file": "m4-r1-panel-Qwen-Qwen3-8-27B.json",
+    "market": 4,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.8-27B",
+    "response_sha256": "343255c8dfabb7e50b5474ff26603bf77bd554cab0a6b37337465d8781b9f261"
+  },
+  {
+    "file": "m4-r1-panel-z-ai-glm-5-3-flash.json",
+    "market": 4,
+    "round": 1,
+    "kind": "panel",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "02d5cbea284bc059e3293132841d87d4726ef011c662c0df67d4c4ec9c5e5f64"
+  },
+  {
+    "file": "m4-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 4,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "975df30a4bf2a85cddad39b425f79c0ba749b40bfead5c660013b1b5dc196ef4"
+  },
+  {
+    "file": "m5-r1-panel-Qwen-Qwen3-6-35B-A3B-FP8.json",
+    "market": 5,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+    "response_sha256": "992a20a4454e7ed8ab5c8e9ce5476dc2575b4032bf4d1e679c333a75043d0c7c"
+  },
+  {
+    "file": "m5-r1-panel-Qwen-Qwen3-8-27B.json",
+    "market": 5,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.8-27B",
+    "response_sha256": "ca73ba3255f42dea6a60c1f3b06a7c6009cf1782e4cb49142f3681f535f88b54"
+  },
+  {
+    "file": "m5-r1-panel-z-ai-glm-5-3-flash.json",
+    "market": 5,
+    "round": 1,
+    "kind": "panel",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "51d2f422e347643f1a3bc2215c220ecde06831e24bae318a7677d2d807be756c"
+  },
+  {
+    "file": "m5-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 5,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "49df2a1bd0fbbaa60f53ff4dcad34ed56782ba544b54521e66f1ee5b52d2ae81"
+  },
+  {
+    "file": "m6-r1-panel-Qwen-Qwen3-6-35B-A3B-FP8.json",
+    "market": 6,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+    "response_sha256": "02c86094158e661c7dd551f6650582bc75b3165569cf6e442c7fcee9faa7dd9d"
+  },
+  {
+    "file": "m6-r1-panel-z-ai-glm-5-3-flash.json",
+    "market": 6,
+    "round": 1,
+    "kind": "panel",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "b294291c1471c87a675e2b322cf69618ce93fd43bb935765dbb6c811ccb3c0be"
+  },
+  {
+    "file": "m6-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 6,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "3755feb535d1716c716cef9cf5d3cbca3d10e71e4136152800deb0481ccd8120"
+  },
+  {
+    "file": "m7-r1-panel-Qwen-Qwen3-8-27B.json",
+    "market": 7,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.8-27B",
+    "response_sha256": "b666fedd3c5571395c9fbb0c170f63571e29c1dd7fc4aed16a322b00a33bbf7f"
+  },
+  {
+    "file": "m7-r1-panel-z-ai-glm-5-3-flash.json",
+    "market": 7,
+    "round": 1,
+    "kind": "panel",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "0c825a3848ed678cf138bbb07111a176af066e4c6f25ad04d185735c9845715c"
+  },
+  {
+    "file": "m7-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 7,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "d53f63775b351b5676db0297b0bda7c18f7611dc95f2c94cc3118286a6fea3e0"
+  },
+  {
+    "file": "m8-r1-panel-Qwen-Qwen3-6-35B-A3B-FP8.json",
+    "market": 8,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.6-35B-A3B-FP8",
+    "response_sha256": "20dd5832203a16117fe0338f59a36a0dc27c7fa4e7981e90ae85f49f6db82c1d"
+  },
+  {
+    "file": "m8-r1-panel-Qwen-Qwen3-8-27B.json",
+    "market": 8,
+    "round": 1,
+    "kind": "panel",
+    "model": "Qwen/Qwen3.8-27B",
+    "response_sha256": "f7ba8c0c319a00b19c1f368d2852f737bf1a7ef51dbcaf1e02b94c6c3efa07bd"
+  },
+  {
+    "file": "m8-r1-panel-z-ai-glm-5-3-flash.json",
+    "market": 8,
+    "round": 1,
+    "kind": "panel",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "438734763168cbd62565e9d0a34a337d4cddaef1e7d07011ef0513cf2037743e"
+  },
+  {
+    "file": "m8-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 8,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "e95838e4d35db7617bba5fc66ed9405c38e1e3b97526af0a98b26dacc19ed252"
+  },
+  {
+    "file": "m9-r1-verdict-z-ai-glm-5-3-flash.json",
+    "market": 9,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "1a9a367b582e780710d58faddadabf0978b1de68e1975c90738a9bce1d1cf7de"
   }
 ]

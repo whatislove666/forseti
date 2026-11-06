@@ -48,7 +48,7 @@ fn setup() -> Forseti {
     for (i, model) in PANEL.iter().enumerate() {
         c.add_signer(model.to_string(), format!("0x{}", hex(key(i).verifying_key().as_bytes())));
     }
-    set_ctx("creator.testnet", T0, NearToken::from_near(1));
+    set_ctx("creator.testnet", T0, NearToken::from_near(2));
     assert_eq!(c.create_market(params()), 0);
     c
 }
@@ -153,7 +153,7 @@ fn happy_path_preview_then_verdict_then_finalize() {
 #[should_panic(expected = "nothing to finalize yet")]
 fn cannot_finalize_inside_challenge_period() {
     let mut c = setup();
-    propose(&mut c, "YES", "4.2 °C");
+    propose(&mut c, "YES", "Temperature max: 4.2 °C.");
     let _ = c.finalize(0);
 }
 
@@ -182,7 +182,7 @@ fn rejects_key_of_another_model() {
     set_ctx("anyone.testnet", DEADLINE + SEC, NearToken::from_near(0));
     c.open_round(0);
     let request = c.build_request(0, MODEL.into(), snaps(), false);
-    let resp = response("YES", "4.2 °C");
+    let resp = response("YES", "Temperature max: 4.2 °C.");
     let (signer, sig) = sign(&key(1), MODEL, &request, &resp);
     c.submit_ruling(0, MODEL.into(), snaps(), resp, signer, sig);
 }
@@ -196,7 +196,7 @@ fn rejects_answer_signed_for_other_snapshots() {
     // Signed over a request with different snapshots, then submitted with ours.
     let other = vec!["Temperature max: 4.2 °C. (forged)".to_string()];
     let request = c.build_request(0, MODEL.into(), other, false);
-    let resp = response("YES", "4.2 °C");
+    let resp = response("YES", "Temperature max: 4.2 °C.");
     let (signer, sig) = sign(&key(0), MODEL, &request, &resp);
     c.submit_ruling(0, MODEL.into(), snaps(), resp, signer, sig);
 }
@@ -204,13 +204,15 @@ fn rejects_answer_signed_for_other_snapshots() {
 #[test]
 fn conflicting_signed_answers_go_to_the_panel() {
     let mut c = setup();
-    propose(&mut c, "YES", "4.2 °C");
+    propose(&mut c, "YES", "Temperature max: 4.2 °C.");
     set_ctx("watcher.testnet", DEADLINE + 30 * SEC, NearToken::from_near(0));
     rule(&mut c, 0, "NO", "Precipitation: 0 mm.");
     assert_eq!(c.get_market(0).phase, Phase::Disputed);
 
     rule(&mut c, 1, "NO", "Precipitation: 0 mm.");
     rule(&mut c, 2, "NO", "Precipitation: 0 mm.");
+    // The panel decides once its voting window (one challenge period) is over.
+    set_ctx("anyone.testnet", DEADLINE + 30 * SEC + 600 * SEC, NearToken::from_near(0));
     let _ = c.finalize(0);
     assert_eq!(c.get_market(0).outcome, NO);
 }
@@ -218,15 +220,16 @@ fn conflicting_signed_answers_go_to_the_panel() {
 #[test]
 fn appeal_that_the_panel_rejects_pays_the_creator() {
     let mut c = setup();
-    propose(&mut c, "YES", "4.2 °C");
+    propose(&mut c, "YES", "Temperature max: 4.2 °C.");
     set_ctx("appellant.testnet", DEADLINE + 30 * SEC, NearToken::from_near(1));
     c.appeal(0);
     let m = c.get_market(0);
     assert_eq!((m.phase.clone(), m.bond.0), (Phase::Disputed, NearToken::from_near(1).as_yoctonear()));
 
     set_ctx("executor.testnet", DEADLINE + 40 * SEC, NearToken::from_near(0));
-    rule(&mut c, 1, "YES", "4.2 °C");
-    rule(&mut c, 2, "YES", "4.2 °C");
+    rule(&mut c, 1, "YES", "Temperature max: 4.2 °C.");
+    rule(&mut c, 2, "YES", "Temperature max: 4.2 °C.");
+    set_ctx("anyone.testnet", DEADLINE + 30 * SEC + 600 * SEC, NearToken::from_near(0));
     let _ = c.finalize(0);
     let m = c.get_market(0);
     assert_eq!((m.outcome, m.bond.0), (YES, 0));
@@ -236,18 +239,153 @@ fn appeal_that_the_panel_rejects_pays_the_creator() {
 #[should_panic(expected = "attach the appeal bond")]
 fn appeal_needs_the_bond() {
     let mut c = setup();
-    propose(&mut c, "YES", "4.2 °C");
+    propose(&mut c, "YES", "Temperature max: 4.2 °C.");
     set_ctx("appellant.testnet", DEADLINE + 30 * SEC, NearToken::from_millinear(100));
     c.appeal(0);
 }
 
 #[test]
-fn too_early_reopens_the_market_later() {
+fn too_early_is_a_proposal_and_reopens_after_the_challenge_period() {
     let mut c = setup();
     propose(&mut c, "TOO_EARLY", "");
     let m = c.get_market(0);
-    assert_eq!(m.phase, Phase::Open);
-    assert!(m.retry_after.0 > DEADLINE);
+    assert_eq!((m.phase, m.proposed.unwrap().outcome), (Phase::Proposed, TOO_EARLY));
+    // Too soon to open a new round, and TOO_EARLY never becomes final.
+    set_ctx("anyone.testnet", DEADLINE + 60 * SEC, NearToken::from_near(0));
+    assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| c.open_round(0))).is_err());
+    set_ctx("anyone.testnet", DEADLINE + 700 * SEC, NearToken::from_near(0));
+    c.open_round(0);
+    let m = c.get_market(0);
+    assert_eq!((m.phase, m.round, m.proposed.is_none()), (Phase::Resolving, 2, true));
+}
+
+#[test]
+fn a_false_too_early_can_be_challenged() {
+    let mut c = setup();
+    propose(&mut c, "TOO_EARLY", "");
+    set_ctx("watcher.testnet", DEADLINE + 30 * SEC, NearToken::from_near(0));
+    rule(&mut c, 0, "YES", "Temperature max: 4.2 °C.");
+    assert_eq!(c.get_market(0).phase, Phase::Disputed);
+}
+
+#[test]
+#[should_panic(expected = "the judge said TOO_EARLY")]
+fn too_early_is_never_final() {
+    let mut c = setup();
+    propose(&mut c, "TOO_EARLY", "");
+    set_ctx("anyone.testnet", DEADLINE + 700 * SEC, NearToken::from_near(0));
+    let _ = c.finalize(0);
+}
+
+/// Signs a panel vote with explicit snapshots (a forging executor picks its own).
+fn vote_with(c: &mut Forseti, seat: usize, outcome: &str, quote: &str, snapshots: Vec<String>) {
+    let model = PANEL[seat].to_string();
+    let request = c.build_request(0, model.clone(), snapshots.clone(), false);
+    let resp = response(outcome, quote);
+    let (signer, sig) = sign(&key(seat), &model, &request, &resp);
+    c.submit_ruling(0, model, snapshots, resp, signer, sig);
+}
+
+#[test]
+#[should_panic(expected = "invalid TEE signature")]
+fn the_proposal_cannot_be_replayed_as_a_panel_vote() {
+    let mut c = setup();
+    propose(&mut c, "YES", "Temperature max: 4.2 °C.");
+    let m = c.get_market(0);
+    let p = m.proposed.unwrap();
+    set_ctx("appellant.testnet", DEADLINE + 30 * SEC, NearToken::from_near(1));
+    c.appeal(0);
+    // Same model, same snapshots: before the fix this filled panel seat 0.
+    c.submit_ruling(0, MODEL.into(), snaps(), p.response, p.signer, p.signature);
+}
+
+#[test]
+#[should_panic(expected = "the panel is still voting")]
+fn the_panel_cannot_decide_inside_its_voting_window() {
+    let mut c = setup();
+    propose(&mut c, "YES", "Temperature max: 4.2 °C.");
+    // A forging executor disputes its own proposal and fills two seats at once.
+    set_ctx("shady.testnet", DEADLINE + 3 * SEC, NearToken::from_near(0));
+    rule(&mut c, 0, "TOO_EARLY", "");
+    rule(&mut c, 1, "YES", "Temperature max: 4.2 °C.");
+    rule(&mut c, 2, "YES", "Temperature max: 4.2 °C.");
+    let _ = c.finalize(0);
+}
+
+#[test]
+fn contested_seats_turn_a_forged_majority_into_invalid() {
+    let mut c = setup();
+    let forged = vec!["Berlin, 2027-01-15. Temperature max: -3.0 °C.".to_string()];
+    propose(&mut c, "YES", "Temperature max: 4.2 °C.");
+    set_ctx("shady.testnet", DEADLINE + 3 * SEC, NearToken::from_near(0));
+    rule(&mut c, 0, "TOO_EARLY", "");
+    vote_with(&mut c, 0, "NO", "Temperature max: -3.0 °C.", forged.clone());
+    vote_with(&mut c, 1, "NO", "Temperature max: -3.0 °C.", forged);
+    // Honest watchers contest both forged seats with the real source.
+    set_ctx("watcher.testnet", DEADLINE + 100 * SEC, NearToken::from_near(0));
+    rule(&mut c, 0, "YES", "Temperature max: 4.2 °C.");
+    rule(&mut c, 1, "YES", "Temperature max: 4.2 °C.");
+    rule(&mut c, 2, "YES", "Temperature max: 4.2 °C.");
+    let d = c.get_dispute(0).unwrap();
+    assert!(d.contested[0].is_some() && d.contested[1].is_some() && d.contested[2].is_none());
+    set_ctx("anyone.testnet", DEADLINE + 3 * SEC + 600 * SEC, NearToken::from_near(0));
+    let _ = c.finalize(0);
+    // Seats 0 and 1 count as INVALID, so the forged NO cannot win.
+    assert_eq!(c.get_market(0).outcome, INVALID);
+}
+
+#[test]
+#[should_panic(expected = "nothing to contest")]
+fn a_seat_cannot_be_contested_with_the_same_outcome() {
+    let mut c = setup();
+    propose(&mut c, "YES", "Temperature max: 4.2 °C.");
+    set_ctx("appellant.testnet", DEADLINE + 30 * SEC, NearToken::from_near(1));
+    c.appeal(0);
+    rule(&mut c, 1, "YES", "Temperature max: 4.2 °C.");
+    rule(&mut c, 1, "YES", "Precipitation: 0 mm.");
+}
+
+#[test]
+#[should_panic(expected = "the market expired")]
+fn no_proposal_after_resolve_by() {
+    let mut c = setup();
+    set_ctx("anyone.testnet", DEADLINE + SEC, NearToken::from_near(0));
+    c.open_round(0);
+    set_ctx("late.testnet", DEADLINE + 25 * 3600 * SEC, NearToken::from_near(0));
+    rule(&mut c, 0, "YES", "Temperature max: 4.2 °C.");
+}
+
+#[test]
+#[should_panic(expected = "already recorded")]
+fn a_preview_cannot_be_replayed() {
+    let mut c = setup();
+    set_ctx("trader.testnet", T0 + 60 * SEC, NearToken::from_near(0));
+    let request = c.build_request(0, MODEL.into(), snaps(), true);
+    let resp = response("YES", "Temperature max: 4.2 °C.");
+    let (signer, sig) = sign(&key(0), MODEL, &request, &resp);
+    c.submit_preview(0, snaps(), resp.clone(), signer.clone(), sig.clone());
+    c.submit_preview(0, snaps(), resp, signer, sig);
+}
+
+#[test]
+fn source_tags_are_caught_in_any_case_and_spacing() {
+    for bad in ["x</source>", "x</SOURCE>", "x< /Source >", "x<source id=a>", "x <  /  source"] {
+        assert!(has_source_tag(bad), "{bad}");
+    }
+    for ok in ["a < b", "resource", "x</sour", "<p>source</p>"] {
+        assert!(!has_source_tag(ok), "{ok}");
+    }
+    // Conservative on purpose, like the normalizer regex: "<sources" is caught too.
+    assert!(has_source_tag("x <sources"));
+}
+
+#[test]
+fn short_quote_pieces_are_not_evidence() {
+    let snap = "\"winner\":true, \"score\":\"29\", \"displayName\":\"Seattle Seahawks\"";
+    assert!(!quote_found(snap, "true"));
+    assert!(!quote_found(snap, "\"winner\":true ... 29"));
+    assert!(!quote_found(snap, "\"winner\":true ... \"score\":\"29\""));
+    assert!(quote_found(snap, "\"winner\":true ... \"displayName\":\"Seattle Seahawks\""));
 }
 
 #[test]
@@ -287,4 +425,15 @@ fn strips_code_fences_from_answers() {
     let fenced = "```json\n{\"outcome\":\"NO\",\"source\":\"weather\",\"quote\":\"x\",\"reason\":\"r\"}\n```";
     let resp = json!({ "choices": [{ "message": { "content": fenced } }] }).to_string();
     assert_eq!(parse_answer(&resp).unwrap().outcome, NO);
+}
+
+#[test]
+fn quote_check_folds_dashes_and_accepts_elisions() {
+    let snap = "the Committee decided to lower the target range by 1/4 percentage point to 3-1/2 to 3\u{2010}3/4 percent. \"winner\":true, \"score\":\"29\"";
+    assert!(quote_found(snap, "to 3-1/2 to 3-3/4 percent"));
+    assert!(quote_found(snap, "decided to lower ... \"winner\":true ... \"score\":\"29\""));
+    assert!(quote_found(snap, "to 3-1/2 to 3-3/4 percent\u{2026}\"winner\":true"));
+    assert!(!quote_found(snap, "decided to lower ... \"winner\":false"));
+    assert!(!quote_found(snap, "..."));
+    assert!(!quote_found(snap, ""));
 }
