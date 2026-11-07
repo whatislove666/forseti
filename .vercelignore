@@ -1,0 +1,10 @@
+# Vercel gets only the static site. Everything else, .env included, stays local.
+/*
+!/vercel.json
+!/web
+!/docs
+!/executor
+/executor/*
+!/executor/proofs
+!/executor/attestations.json
+!/executor/sources.mjs
