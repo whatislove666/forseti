@@ -256,6 +256,22 @@
     "response_sha256": "ab58d49ac37abccdbe09fb4e3ad682ce51d2488a6b0f5dcca96662a8b6eb4260"
   },
   {
+    "file": "m31-r1-verdict-z-ai-glm-5-3-flash-28cf02c7.json",
+    "market": 31,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "107981cf6ddcf9105ddf95b28aaff56489b16510db16c46cfe8e7efa82f5016a"
+  },
+  {
+    "file": "m32-r1-verdict-z-ai-glm-5-3-flash-20f035a0.json",
+    "market": 32,
+    "round": 1,
+    "kind": "verdict",
+    "model": "z-ai/glm-5.3-flash",
+    "response_sha256": "32b12f5fefbfeae4edc7402d370576f12205e9841d7daaff2027fe8b1bfc7da9"
+  },
+  {
     "file": "m4-r1-panel-Qwen-Qwen3-6-35B-A3B-FP8.json",
     "market": 4,
     "round": 1,

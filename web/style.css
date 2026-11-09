@@ -253,3 +253,58 @@ main.wide + .foot { border-top: 0; }
   .story-seal { width: 240px; }
   .trust > div { padding: 24px; }
 }
+
+/* ---------- seal a market ---------- */
+.new-lede { max-width: 68ch; }
+.new-form { display: grid; gap: var(--space-4); min-width: 0; }
+.new-examples { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); font: 400 14px/21px var(--font-sans); }
+.new-examples .fs-btn { font-size: 14px; padding: 7px 12px; }
+.new-text { font: 400 16px/24px var(--font-sans); resize: vertical; }
+textarea.new-text { min-height: 104px; }
+.new-source { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: var(--space-3); }
+.new-note { margin: 0; font: 400 14px/21px var(--font-sans); }
+.new-wait { padding: var(--space-4); border: 1px dashed var(--line-strong); border-radius: var(--radius-md); }
+.new-preview { display: grid; gap: var(--space-3); justify-items: center; text-align: center; }
+.new-preview svg { display: block; }
+.new-steps { margin: var(--space-3) 0 0; padding-left: 1.3em; display: grid; gap: var(--space-3); font: 400 14px/21px var(--font-sans); color: var(--ink-muted); }
+.new-steps li::marker { color: var(--seal); font-weight: 600; }
+
+.review { display: grid; gap: var(--space-4); padding: var(--space-6); border: 1px solid var(--line); border-left: 4px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--paper-raised); }
+.review-ok { border-left-color: var(--gold); }
+.review-ok-loose { border-left-color: var(--gold); }
+.review-split, .review-warn { border-left-color: var(--seal); }
+.review .section-title { font-size: 22px; line-height: 28px; }
+.vague { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.vague li { display: grid; gap: 4px; padding: var(--space-3) var(--space-4); border: 1px solid var(--seal-soft); border-radius: var(--radius-md); font: 400 14px/21px var(--font-sans); color: var(--ink-muted); }
+.vague code { justify-self: start; font: 500 14px/20px var(--font-mono); color: var(--ink); background: var(--seal-soft); border-radius: var(--radius-sm); padding: 2px 6px; }
+.vague-fix { color: var(--ink); }
+.new-fit { margin: 0; }
+.readings { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+.readings li { display: grid; grid-template-columns: 170px 90px minmax(0, 1fr); gap: 4px var(--space-4); padding: var(--space-3) var(--space-4); background: var(--paper); font: 400 14px/21px var(--font-sans); align-items: baseline; }
+.reading-model { font-weight: 600; }
+.reading-word { font: 600 18px/24px var(--font-display); }
+.reading-yes, .reading-no { color: var(--gold); }
+.reading-too_early, .reading-invalid, .reading-error { color: var(--seal); }
+.reading-quote { font: 400 13px/19px var(--font-mono); overflow-wrap: anywhere; }
+.reading-checks { grid-column: 3; font-size: 13px; color: var(--ink-muted); }
+.snapshot { margin: var(--space-3) 0 0; padding: var(--space-3); max-height: 220px; overflow: auto; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); font: 400 12px/18px var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---------- live progress ---------- */
+.live { border-color: var(--gold-soft); }
+.live-steps { list-style: none; margin: var(--space-4) 0 0; padding: 0; display: grid; gap: var(--space-3); }
+.live-step { position: relative; display: grid; gap: 2px; padding-left: 28px; font: 500 14px/20px var(--font-sans); color: var(--ink-muted); }
+.live-step::before { content: ""; position: absolute; left: 0; top: 2px; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--line-strong); }
+.live-step small { font: 400 13px/19px var(--font-sans); color: var(--ink-muted); }
+.live-done { color: var(--ink); }
+.live-done::before { background: var(--gold); border-color: var(--gold); }
+.live-now { color: var(--ink); }
+.live-now::before { border-color: var(--seal); animation: live-pulse 1.4s ease-in-out infinite; }
+@keyframes live-pulse { 50% { box-shadow: 0 0 0 5px var(--seal-soft); } }
+@media (prefers-reduced-motion: reduce) { .live-now::before { animation: none; background: var(--seal-soft); } }
+.live-note { margin: var(--space-3) 0 0; font: 400 13px/19px var(--font-sans); min-height: 19px; }
+
+@media (max-width: 900px) {
+  .new-source { grid-template-columns: 1fr; }
+  .readings li { grid-template-columns: minmax(0, 1fr) auto; }
+  .reading-quote, .reading-checks { grid-column: 1 / -1; }
+}

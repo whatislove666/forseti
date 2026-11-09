@@ -6,3 +6,4 @@ out/
 cache/
 .DS_Store
 .vercel
+.env.local

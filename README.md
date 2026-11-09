@@ -42,7 +42,41 @@ in advance which model will judge, on what sources, and be able to check afterwa
    `Verdict(bytes32 commitmentHash,uint8 outcome,uint32 round)`.
 9. Anyone relays the signature to `Forseti.sol` on an EVM chain. `DemoMarkets.sol` pays out from it.
 
-## Try it
+## Try it in the browser: about 5 minutes, no wallet or key
+
+Open https://forsetihq.xyz/#/new.
+
+1. Click **A vague one, on purpose**, then **Check the wording**. In about half a minute you see:
+   - the judge's notes on the words two honest readers could take differently ("cold", "the weather in
+     Berlin"), each with a precise replacement;
+   - how the judge and both other panel models read today's source.
+
+   Each answer is signed in NEAR AI Cloud's TEE. Your browser checks every signature against the keys
+   registered on `forseti.testnet`. It also checks whether each quote is word for word in the source, the
+   same check the contract runs on-chain.
+2. Click **ETH price** (its line is set near today's price), **Check the wording**, then **Seal it on
+   NEAR**. A demo account, `forseti-relay.testnet`, creates the market and pays the 2 NEAR storage deposit.
+   You land on the new market's page.
+3. Watch **Live on testnet**:
+   - trading closes 2 minutes after sealing;
+   - the sealed judge answers on secure hardware, and NEAR accepts the signed answer;
+   - a 2-minute appeal window runs;
+   - the verdict becomes final, NEAR Chain Signatures signs it, and Base Sepolia records it.
+
+   When it is done, the page runs **Check it yourself** on its own, and every check passes in your browser.
+   Markets 31 and 32 went through these steps on Nov 9.
+
+The site's server is a set of Vercel functions in `api/`: `check`, `create` and `advance`.
+- **Not trusted.** It is one more executor that pays gas and model fees. The contract re-checks everything
+  it submits.
+- **What it moves.** Only markets created by its relay account or by `forseti.testnet`.
+- **Limits.** At most 6 visitor markets per hour, plus a per-visitor rate limit.
+
+**Markets 33–35 resolve during judging** (Nov 16–18 UTC), on the Coinbase daily candles of ETH, NEAR and
+BTC. A scheduled GitHub Action (`.github/workflows/advance.yml`) calls `/api/advance?all=1` every 10
+minutes, so they settle with nobody at a keyboard. On the site they are under **Markets → Deciding live**.
+
+## Try it locally
 
 Requirements: Rust (the toolchain in `contract/rust-toolchain.toml` installs itself through rustup),
 Foundry, Node 20.6+. Steps 1–3 and the browser checks need no keys; steps 4–5 and **Ask the judge** need a
@@ -241,7 +275,13 @@ evidence, not what any oracle would have said on the day.
 - `contract/`: NEAR contract and unit tests
 - `evm/`: `Forseti.sol` verifier, `DemoMarkets.sol`, Foundry tests
 - `executor/`: executor, attestation checks, EVM relay and bets scripts, proof bundles
-- `web/`: the landing page, market register, in-browser verification, docs and roadmap
+- `web/`: the landing page, market register, in-browser verification, "Seal a market", docs and roadmap
+- `api/`: Vercel functions behind "Seal a market": `check` (wording review and three signed readings),
+  `create` (seals through the relay account) and `advance` (judge, finalize, relay; `?all=1` for the
+  schedule). Proof bundles they write go to Vercel Blob, keyed by response hash.
+- `dev.mjs`: local stand-in for Vercel (`npm i && npm run dev`, then http://localhost:8787). It uses the
+  `RELAY_*` and `EVM_RELAY_*` keys from `.env`; see `.env.example`.
+- `.github/workflows/advance.yml`: the 10-minute schedule that moves markets forward
 - `docs/`: documentation and roadmap, in Markdown
 
 ## Credits

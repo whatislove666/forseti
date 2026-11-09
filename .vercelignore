@@ -1,6 +1,9 @@
-# Vercel gets only the static site. Everything else, .env included, stays local.
+# Vercel gets the static site and the server functions. Everything else, .env included, stays local.
 /*
 !/vercel.json
+!/package.json
+!/package-lock.json
+!/api
 !/web
 !/docs
 !/executor
@@ -8,3 +11,5 @@
 !/executor/proofs
 !/executor/attestations.json
 !/executor/sources.mjs
+!/executor/forseti.mjs
+!/executor/relay.mjs

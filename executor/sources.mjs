@@ -77,6 +77,20 @@ export async function snapshot(source) {
   return normalize(text);
 }
 
+// The contract's quote check, mirrored: typographic dashes and quotes folded to ASCII, whitespace
+// collapsed, and a quote may leave text out with "..." as long as every piece is in the snapshot.
+// Rust's char::is_whitespace (Unicode White_Space), not JS \s: they differ on U+0085 and U+FEFF.
+const RUST_WS = new Set([0x9, 0xa, 0xb, 0xc, 0xd, 0x20, 0x85, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000]);
+const normalizeWs = (s) => s.replace(/[‐-―−]/g, '-').replace(/[‘’‛′]/g, "'").replace(/[“”‟″]/g, '"').split('').reduce((w, c) => (RUST_WS.has(c.codePointAt(0)) ? w.push('') : (w[w.length - 1] += c), w), ['']).filter(Boolean).join(' ');
+const chars = (s) => [...s].length;
+export function quoteFound(snapshot, quote) {
+  const text = normalizeWs(snapshot);
+  const pieces = quote.replace(/…/g, '...').split('...').map(normalizeWs).filter(Boolean);
+  return pieces.length > 0 && pieces.length <= 8
+    && pieces.every((p) => chars(p) >= 8 && text.includes(p))
+    && pieces.some((p) => chars(p) >= 16);
+}
+
 /** Reads the judge's answer the way the contract's parse_answer and strip_fence do (trim, drop a
  *  ``` line with any tag, drop trailing ```), so the executor never rejects what the chain accepts. */
 export function parseAnswer(response) {

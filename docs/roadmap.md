@@ -9,6 +9,8 @@ Forseti today proves the core idea on testnet: a judge sealed before trading, ch
 - **Appeals to a panel.** Anyone can post a bond and send a verdict to three models that decide by majority. A forged verdict was overturned this way on testnet.
 - **One verdict for every chain.** NEAR Chain Signatures signs the final answer once; `Forseti.sol` accepts it on any EVM chain. Live on Base Sepolia with a betting contract that pays out from it.
 - **Checks in the browser.** Every market page re-runs every check with no server in between.
+- **Seal a market from the browser.** Anyone can write a market, have the judge review its wording and three sealed models read today's source, seal it, and watch it get decided, checked, signed and recorded on Base Sepolia in about five minutes, with no wallet.
+- **A wording check before sealing.** The judge flags the words two honest readers could take differently and suggests precise ones, and the browser shows whose quote NEAR would reject, before anyone trades.
 - **Replays of real markets.** 27 settled Polymarket, Kalshi and Manifold markets, five of them disputed on their platform, resolved again by a sealed judge next to the platform's own outcome.
 - **Disputes that fail safe.** The panel votes for a full window, every seat can be contested with a second signed vote, and a contested seat counts as Invalid, so a forged source that someone notices ends in a refund rather than a wrong payout.
 
@@ -23,7 +25,7 @@ Forseti today proves the core idea on testnet: a judge sealed before trading, ch
 
 - **Drop-in oracle adapter.** A contract with the interface that Polymarket-style conditional-token markets already call for UMA, so an existing market can switch its oracle to Forseti by configuration.
 - **SDKs.** A TypeScript SDK to seal, ask, verify and relay; a Solidity library; a NEAR cross-contract interface; drop-in "Ask the judge" and "Check it yourself" components.
-- **Rules linter.** Before sealing, the judge and the panel read the rules against sample sources and flag ambiguity, the cause of most disputes, with a score for how predictable the market is.
+- **Predictability score.** Grow the wording check into a score: the judge and the panel read the rules against many past copies of the sources, and the market shows how often they agree.
 - **More chains.** Solana and other ed25519 chains through the EdDSA signatures of Chain Signatures, plus settlement through NEAR Intents.
 - **Forseti Bench.** Run every settled market from the major platforms through sealed judges and publish how often they agree with the official outcome and where they differ, so markets pick judges by evidence.
 

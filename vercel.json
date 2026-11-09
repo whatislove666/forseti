@@ -1,9 +1,36 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/advance.js": {
+      "maxDuration": 150
+    },
+    "api/check.js": {
+      "maxDuration": 60
+    },
+    "api/create.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
-    { "source": "/", "destination": "/web/index.html" },
-    { "source": "/app.js", "destination": "/web/app.js" },
-    { "source": "/style.css", "destination": "/web/style.css" },
-    { "source": "/replays.json", "destination": "/web/replays.json" },
-    { "source": "/design/:path*", "destination": "/web/design/:path*" }
+    {
+      "source": "/",
+      "destination": "/web/index.html"
+    },
+    {
+      "source": "/app.js",
+      "destination": "/web/app.js"
+    },
+    {
+      "source": "/style.css",
+      "destination": "/web/style.css"
+    },
+    {
+      "source": "/replays.json",
+      "destination": "/web/replays.json"
+    },
+    {
+      "source": "/design/:path*",
+      "destination": "/web/design/:path*"
+    }
   ]
 }

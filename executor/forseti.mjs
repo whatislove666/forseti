@@ -69,6 +69,28 @@ const ns = (minutes) => String(BigInt(Date.now() + minutes * 60_000) * 1_000_000
 const yocto = (near) => String(BigInt(Math.round(Number(near) * 1e6)) * 10n ** 18n);
 const OUTCOME = { 1: 'YES', 2: 'NO', 3: 'INVALID', 4: 'TOO_EARLY' };
 
+/** Creates a market from a spec like markets/berlin.json (times in minutes from now, or
+ *  `resolve_after_iso` for a fixed deadline). Attaches the 2 NEAR storage deposit. */
+export async function createMarket(spec) {
+  const after = spec.resolve_after_iso ? String(BigInt(Date.parse(spec.resolve_after_iso)) * 1_000_000n) : ns(spec.resolve_after_minutes);
+  const params = {
+    question: spec.question,
+    rules: spec.rules,
+    model: spec.model,
+    system_prompt: spec.system_prompt,
+    sources: spec.sources,
+    seed: spec.seed,
+    max_tokens: spec.max_tokens,
+    panel: spec.panel,
+    resolve_after: after,
+    resolve_by: String(BigInt(after) + BigInt(spec.resolve_by_minutes - (spec.resolve_after_minutes ?? 0)) * 60_000_000_000n),
+    challenge_period: String(BigInt(spec.challenge_minutes * 60) * 1_000_000_000n),
+    appeal_bond: yocto(spec.appeal_bond_near),
+  };
+  const { hash, value: id } = await call('create_market', { params }, { deposit: '2 NEAR' });
+  return { id, tx: hash };
+}
+
 /** proofs/index.json lets the web page find the bundle of an on-chain ruling by its response hash.
  *  It lists only bundles with a tx: not ones still pending or marked `rejected`. */
 export function writeProofIndex() {
@@ -80,9 +102,20 @@ export function writeProofIndex() {
   writeFileSync(new URL('index.json', PROOFS), JSON.stringify(index, null, 2));
 }
 
+/** Proof bundles go next to this script by default; the web server stores them in Vercel Blob. */
+const localStore = {
+  exists: (name) => existsSync(new URL(name, PROOFS)) && JSON.parse(readFileSync(new URL(name, PROOFS), 'utf8')).tx,
+  save: (name, bundle) => {
+    mkdirSync(PROOFS, { recursive: true });
+    writeFileSync(new URL(name, PROOFS), JSON.stringify(bundle, null, 2));
+  },
+  done: () => writeProofIndex(),
+};
+
 /** Fetch sources, build the request on-chain, ask the model, save the proof bundle, submit.
- *  `forged` replaces the real snapshots: only demo/dishonest-executor.mjs uses it. */
-export async function rule(m, kind, model, forged) {
+ *  `forged` replaces the real snapshots: only demo/dishonest-executor.mjs uses it.
+ *  Returns the bundle, with `tx` set once the contract accepted the answer. */
+export async function rule(m, kind, model, forged, store = localStore) {
   const sources = m.commitment.params.sources;
   const snapshots = forged ?? (await Promise.all(sources.map(snapshot)));
   const request = await view('build_request', { id: m.commitment.id, model, snapshots, preview: kind === 'preview' });
@@ -100,29 +133,28 @@ export async function rule(m, kind, model, forged) {
   // One file per signed answer (hash of model, request and response), so previews and
   // challenges never overwrite each other. Older bundles keep their names.
   const name = `m${m.commitment.id}-r${m.round}-${kind}-${model.replace(/[^a-z0-9]+/gi, '-')}-${sha256(j.signedText).slice(0, 8)}.json`;
-  const file = new URL(name, PROOFS);
-  if (existsSync(file) && JSON.parse(readFileSync(file, 'utf8')).tx) {
+  if (await store.exists(name)) {
     console.log(`    this exact answer is already on-chain: proofs/${name}`);
-    return;
+    return null;
   }
   // Only snapshot hashes go on-chain, so the bundle is written before the transaction. A failed
   // transaction marks it `rejected` rather than deleting it: if only the RPC reply was lost, the
   // ruling is on-chain and this is the sole copy of its snapshots. The index skips it either way.
   const bundle = { contract: CONTRACT, market: m.commitment.id, commitment_hash: m.commitment_hash, round: m.round, kind, model, tx: null, ...(forged && { forged_by_dishonest_executor: true }), sources, snapshots, request, ...j, answer };
-  const save = () => writeFileSync(file, JSON.stringify(bundle, null, 2));
-  mkdirSync(PROOFS, { recursive: true });
-  save();
+  const save = () => store.save(name, bundle);
+  await save();
   const args = { id: m.commitment.id, snapshots, response: j.response, signer: j.signer, signature: j.signature };
   try {
     bundle.tx = (kind === 'preview' ? await call('submit_preview', args) : await call('submit_ruling', { ...args, model })).hash;
   } catch (err) {
     bundle.rejected = err.message;
-    save();
+    await save();
     throw err;
   }
-  save();
-  writeProofIndex();
+  await save();
+  await store.done?.();
   console.log(`    tx ${bundle.tx}\n    proof proofs/${name}`);
+  return bundle;
 }
 
 export function show(m) {
@@ -143,22 +175,7 @@ const id = Number(arg);
 const market = () => view('get_market', { id });
 
 if (cmd === 'create') {
-  const spec = JSON.parse(readFileSync(arg, 'utf8'));
-  const params = {
-    question: spec.question,
-    rules: spec.rules,
-    model: spec.model,
-    system_prompt: spec.system_prompt,
-    sources: spec.sources,
-    seed: spec.seed,
-    max_tokens: spec.max_tokens,
-    panel: spec.panel,
-    resolve_after: ns(spec.resolve_after_minutes),
-    resolve_by: ns(spec.resolve_by_minutes),
-    challenge_period: String(BigInt(spec.challenge_minutes * 60) * 1_000_000_000n),
-    appeal_bond: yocto(spec.appeal_bond_near),
-  };
-  const { hash, value: newId } = await call('create_market', { params }, { deposit: '2 NEAR' });
+  const { id: newId, tx: hash } = await createMarket(JSON.parse(readFileSync(arg, 'utf8')));
   console.log(`created market ${newId} (tx ${hash})`);
   show(await view('get_market', { id: newId }));
 } else if (cmd === 'preview') {

@@ -2,7 +2,7 @@
 // ask the committed judge with their own NEAR AI key. No backend.
 // Layout follows the Forseti design system: what a newcomer needs first, how it was decided
 // second, and everything technical under "For auditors".
-import { snapshot } from '../executor/sources.mjs';
+import { quoteFound, snapshot } from '../executor/sources.mjs';
 
 const CONTRACT = 'forseti.testnet';
 const MPC = 'v1.signer-prod.testnet';
@@ -29,19 +29,6 @@ const ms = (ns) => Number(BigInt(ns) / 1_000_000n);
 const utc = (ns) => `${new Date(ms(ns)).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
 const nearAmount = (yocto) => `${Number(BigInt(yocto) / 10n ** 18n) / 1e6} NEAR`;
 const minutes = (ns) => `${Number(BigInt(ns) / 60_000_000_000n)} minutes`;
-// The contract's quote check, mirrored: typographic dashes and quotes folded to ASCII, whitespace
-// collapsed, and a quote may leave text out with "..." as long as every piece is in the snapshot.
-// Rust's char::is_whitespace (Unicode White_Space), not JS \s: they differ on U+0085 and U+FEFF.
-const RUST_WS = new Set([0x9, 0xa, 0xb, 0xc, 0xd, 0x20, 0x85, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000]);
-const normalizeWs = (s) => s.replace(/[\u2010-\u2015\u2212]/g, '-').replace(/[\u2018\u2019\u201B\u2032]/g, "'").replace(/[\u201C\u201D\u201F\u2033]/g, '"').split('').reduce((w, c) => (RUST_WS.has(c.codePointAt(0)) ? w.push('') : (w[w.length - 1] += c), w), ['']).filter(Boolean).join(' ');
-const chars = (s) => [...s].length;
-function quoteFound(snapshot, quote) {
-  const text = normalizeWs(snapshot);
-  const pieces = quote.replace(/\u2026/g, '...').split('...').map(normalizeWs).filter(Boolean);
-  return pieces.length > 0 && pieces.length <= 8
-    && pieces.every((p) => chars(p) >= 8 && text.includes(p))
-    && pieces.some((p) => chars(p) >= 16);
-}
 
 // The model's answer as the contract reads it (strip_fence + parse_answer, same truncation).
 function stripFence(s) {
@@ -170,11 +157,15 @@ function originCard(m, o) {
     </section>`;
 }
 
+// Proof bundles written by the site's server live in Vercel Blob, keyed by the response hash.
+const PROOF_STORE = 'https://zptmsq3050bfxgmn.public.blob.vercel-storage.com';
 let proofIndex;
 async function proofFor(responseSha) {
   proofIndex ??= fetch('../executor/proofs/index.json').then((r) => (r.ok ? r.json() : [])).catch(() => []);
   const entry = (await proofIndex).find((p) => p.response_sha256 === responseSha);
-  return entry ? fetch(`../executor/proofs/${entry.file}`).then((r) => r.json()) : null;
+  if (entry) return fetch(`../executor/proofs/${entry.file}`).then((r) => r.json());
+  if (!PROOF_STORE) return null;
+  return fetch(`${PROOF_STORE}/proofs/${responseSha}.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 }
 
 // ---------- reading a market in plain words ----------
@@ -259,7 +250,7 @@ function answerBlock(m) {
 
 function evidence(m, r) {
   const s = m.commitment.params.sources.find((x) => x.id === r.source);
-  return `<figure class="fs-quote"><code>${esc(r.quote)}</code><figcaption>The line the judge relied on, from the ${esc(r.source)} source at ${esc(host(s?.url ?? ''))}</figcaption></figure>`;
+  return `<figure class="fs-quote"><code>${esc(r.quote)}</code><figcaption>The line the judge relied on, from the ${r.source === 'source' ? '' : `${esc(r.source)} `}source at ${esc(host(s?.url ?? ''))}</figcaption></figure>`;
 }
 
 function timeline(m) {
@@ -359,8 +350,8 @@ async function landing() {
         <h1 class="hero-title">The judge is sealed before the first trade.</h1>
         <p class="hero-lede">Forseti fixes a prediction market's AI judge before trading starts: the model, its instructions, its sources and the three judges who hear appeals. After the deadline NEAR checks that this exact judge answered this exact question. Then anyone can check it again.</p>
         <div class="hero-actions">
-          <a class="btn-light" href="#/markets">Verify a market</a>
-          <a class="fs-btn fs-btn-quiet" href="#how" data-scroll="how">How it works</a>
+          <a class="btn-light" href="#/new">Seal a market</a>
+          <a class="fs-btn fs-btn-quiet" href="#/markets">Verify a market</a>
         </div>
         <p class="hero-note" id="hero-note">The seal of market ${HERO.id}, drawn from its rules. Change one rule and the seal changes.</p>
       </div></div>
@@ -466,8 +457,8 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
 
     <section class="band band-wax" id="cta">
       <div class="band-inner band-cta">
-        <h2 class="cta-title">See a sealed market for yourself.</h2>
-        <a class="btn-on-wax" href="#/markets">Verify a market</a>
+        <h2 class="cta-title">Seal a market and watch it get decided, in three minutes.</h2>
+        <a class="btn-on-wax" href="#/new">Seal a market</a>
       </div>
     </section>`;
   document.querySelector('#hero-seal svg')?.classList.add('fs-press');
@@ -537,28 +528,38 @@ async function register() {
       <div class="reg-group-head"><h2 class="section-title">${title} <span class="reg-count">${list.length}</span></h2><p class="fs-plain fs-muted">${text}</p></div>
       <ul class="fs-register">${list.map(row).join('')}</ul>
     </section>` : '');
-  const kind = (m) => (byHash.get(m.commitment_hash)?.contested ? 'disputed' : byHash.has(m.commitment_hash) ? 'replay' : 'demo');
+  // Team markets on real prices that close during judging (16-18 Nov 2026) are decided live.
+  const kind = (m) => (byHash.get(m.commitment_hash)?.contested ? 'disputed' : byHash.has(m.commitment_hash) ? 'replay' : m.commitment.creator === RELAY ? 'visitor' : ms(m.commitment.params.resolve_after) > Date.UTC(2026, 10, 15) && ms(m.commitment.params.resolve_after) < Date.UTC(2026, 10, 19) ? 'live' : 'demo');
   const platforms = [...new Set(origins.map((o) => o.platform))].join(' and ');
   app.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">Markets</h1>
       <p class="fs-plain fs-muted">Every market here has its judge sealed on NEAR before it was decided. Open one to see the answer, how it was decided, and to check every step yourself.</p>
     </div>
+    ${group('Deciding live', 'Markets on real prices that close during judging, 16 to 18 November. Each is decided by its sealed judge on schedule, and you can ask the judge today how it reads the source.', markets.filter((m) => kind(m) === 'live'))}
     ${group('Disputed on their platform', 'Markets whose official outcome was fought over, sealed again here and judged from public sources, next to what the platform decided.', markets.filter((m) => kind(m) === 'disputed'))}
     ${group('Replays of real markets', `Markets that already settled${platforms ? ` on ${esc(platforms)}` : ''}, sealed again with the same question and judged by Forseti. Each links to the original.`, markets.filter((m) => kind(m) === 'replay'))}
+    ${group('Sealed by visitors', 'Markets that people wrote and sealed from this site. Each closed two minutes after sealing.', markets.filter((m) => kind(m) === 'visitor'))}
     ${group('Demos', 'Markets made to show each path: a verdict upheld on appeal, a forged verdict overturned by the panel, and one still open where you can ask the judge.', markets.filter((m) => kind(m) === 'demo'))}
     <p class="register-note">${markets.length} markets on ${CONTRACT}. Each seal is drawn from the market's commitment, so it changes if the rules do.</p>`;
 }
 
 // ---------- market ----------
 
+// The market on screen and the published attestations, so a live repaint and the checks use the latest.
+let shown = null, attestCache = [];
+
 async function market(id) {
   const seq = current;
   const [m, attest, origins, dispute] = await Promise.all([view('get_market', { id }), fetch('../executor/attestations.json').then((r) => (r.ok ? r.json() : [])).catch(() => []), replays(), view('get_dispute', { id }).catch(() => null)]);
   if (seq !== current) return;
   m.dispute = dispute;
+  shown = m;
+  attestCache = attest;
   const origin = origins.find((o) => o.commitment_hash === m.commitment_hash);
   const open = m.phase === 'Open' && beforeDeadline(m);
+  // Visitor and team markets get a live panel while they run, and for a day after.
+  const live = LIVE_CREATORS.includes(m.commitment.creator) && !origin && (m.phase !== 'Final' || Date.now() - ms(m.commitment.params.resolve_after) < 86_400_000);
   app.innerHTML = `
     <a class="back" href="#/markets">All markets</a>
     <div class="case">
@@ -569,6 +570,7 @@ async function market(id) {
         <details class="fs-details"><summary>For auditors</summary>${auditors(m, attest)}</details>
       </div>
       <aside class="case-side">
+        ${live ? `<section class="fs-panel live" id="live"><h2 class="section-title">Live on testnet</h2><ol class="live-steps"></ol><p class="live-note fs-muted" role="status" aria-live="polite"></p></section>` : ''}
         <section class="fs-panel">
           <h2 class="section-title">Check it yourself</h2>
           <p class="fs-plain fs-muted" style="margin-top:8px">Your browser re-checks this market against NEAR and Base Sepolia, with no Forseti server in between.</p>
@@ -582,12 +584,13 @@ async function market(id) {
         ${open ? askPanel() : ''}
       </aside>
     </div>`;
-  document.getElementById('verify').addEventListener('click', (e) => verify(m, attest, e.target));
+  document.getElementById('verify').addEventListener('click', (e) => verify(shown, attestCache, e.target));
   document.getElementById('details').addEventListener('click', (e) => {
-    const shown = document.getElementById('checks').classList.toggle('show-details');
-    e.target.textContent = shown ? 'Hide details' : 'Show details';
+    const on = document.getElementById('checks').classList.toggle('show-details');
+    e.target.textContent = on ? 'Hide details' : 'Show details';
   });
   if (open) document.getElementById('ask').addEventListener('submit', (e) => ask(e, m));
+  if (live) startLive(m, seq);
 }
 
 // ---------- verification ----------
@@ -804,6 +807,267 @@ async function ask(e, m) {
   button.disabled = false;
 }
 
+// ---------- seal a market (served by api/ on forsetihq.xyz) ----------
+
+const RELAY = 'forseti-relay.testnet';
+// Markets the site's server moves forward after their deadline: visitors' and the team's.
+const LIVE_CREATORS = [RELAY, CONTRACT];
+const MODEL_NAME = { 'z-ai/glm-5.3-flash': 'GLM 5.3 Flash', 'Qwen/Qwen3.6-35B-A3B-FP8': 'Qwen 3.6 35B', 'Qwen/Qwen3.8-27B': 'Qwen 3.8 27B' };
+
+const EXAMPLES = [
+  {
+    label: 'A vague one, on purpose',
+    question: 'Will it be cold in Berlin when trading closes?',
+    rules: 'Resolves YES if the weather in Berlin is cold.',
+    url: 'https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m,apparent_temperature',
+    extract: '$.current',
+  },
+  {
+    label: 'ETH price',
+    question: "Is the Coinbase ETH-USD spot price above $PRICE at the judge's first reading after trading closes?",
+    rules: 'The judge reads the source once, at its first reading after trading closes, and that reading is final. Use its amount field, the ETH-USD spot price in US dollars. YES if amount is greater than PRICE.00, NO if it is PRICE.00 or less.',
+    url: 'https://api.coinbase.com/v2/prices/ETH-USD/spot',
+    extract: '$.data',
+  },
+  {
+    label: 'A fact on Wikipedia',
+    question: 'Does the English Wikipedia summary of Forseti call him a god of justice?',
+    rules: 'Use the summary text in the source. YES if it describes Forseti as a god of justice or of reconciliation, NO if it describes him otherwise.',
+    url: 'https://en.wikipedia.org/api/rest_v1/page/summary/Forseti',
+    extract: '$.extract',
+  },
+];
+
+async function api(path, body) {
+  const res = await fetch(`/api/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const out = await res.json().catch(() => ({ error: `The server answered ${res.status}.` }));
+  if (!res.ok) throw new Error(out.error ?? `The server answered ${res.status}.`);
+  return out;
+}
+
+function newMarket() {
+  app.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">Seal a market</h1>
+      <p class="fs-plain fs-muted new-lede">Write a question and its rules. Three sealed judges read your wording first, then you seal it on NEAR testnet. Trading closes two minutes later, and you watch the judge decide on secure hardware, NEAR check the answer and Base Sepolia receive it. No wallet or key needed: a demo account pays the gas.</p>
+    </div>
+    <div class="case">
+      <form class="new-form" id="new" novalidate>
+        <div class="new-examples"><span class="fs-muted">Start from an example:</span>${EXAMPLES.map((e, i) => `<button type="button" class="fs-btn fs-btn-quiet" data-example="${i}">${esc(e.label)}</button>`).join('')}</div>
+        <div class="fs-field"><label for="q">Question</label><input id="q" class="fs-input new-text" maxlength="300" required placeholder="Will it rain in London when trading closes?"></div>
+        <div class="fs-field"><label for="rules">Rules the judge must follow</label><textarea id="rules" class="fs-input new-text" rows="4" maxlength="2000" placeholder="Which value decides, from which source, and where the line is."></textarea></div>
+        <div class="new-source">
+          <div class="fs-field"><label for="url">Source the judge reads</label><input id="url" class="fs-input" type="url" required placeholder="https://api.open-meteo.com/v1/forecast?…"></div>
+          <div class="fs-field"><label for="extract">Field to read <span class="fs-muted">(optional, for JSON)</span></label><input id="extract" class="fs-input" placeholder="$.current"></div>
+        </div>
+        <p class="new-note fs-muted">The judge reads this source once trading closes, so it must already hold the answer by then: a live price, today's weather, a page that states a fact.</p>
+        <div class="check-actions">
+          <button class="fs-btn fs-btn-primary" type="submit" id="check-btn">Check the wording</button>
+          <button class="fs-btn fs-btn-quiet" type="button" id="seal-btn" disabled>Seal it on NEAR</button>
+        </div>
+        <div id="new-out" aria-live="polite"></div>
+      </form>
+      <aside class="case-side">
+        <section class="fs-panel new-preview">
+          <div id="draft-seal">${seal('0x'.padEnd(66, '0'), { state: 'open', size: 200 })}</div>
+          <p class="fs-plain fs-muted">Drawn from what you typed. Change one word and the seal changes. Once sealed, the market's seal also covers its deadline and number, and nothing in it can change.</p>
+        </section>
+        <section class="fs-panel">
+          <h2 class="section-title">What happens</h2>
+          <ol class="new-steps">
+            <li>The judge and two other models read your draft against today's source. Their answers are signed by secure hardware.</li>
+            <li>You seal it: the question, rules, source, judge and appeal panel go on NEAR as one hash.</li>
+            <li>Two minutes later the judge answers, and NEAR checks the signature and the quote.</li>
+            <li>After a two-minute appeal window the verdict is final, signed by NEAR Chain Signatures and recorded on Base Sepolia.</li>
+          </ol>
+        </section>
+      </aside>
+    </div>`;
+  const form = document.getElementById('new');
+  const $ = (id) => document.getElementById(id);
+  const out = $('new-out');
+  const draft = () => ({ question: $('q').value.trim(), rules: $('rules').value.trim(), sources: [{ id: 'source', url: $('url').value.trim(), extract: $('extract').value.trim() }] });
+  let checked = null;
+  const redraw = async () => {
+    const d = draft();
+    $('draft-seal').innerHTML = seal(`0x${await sha256(JSON.stringify(d))}`, { state: 'open', size: 200 });
+    if (checked && checked !== JSON.stringify(d)) { $('seal-btn').disabled = true; checked = null; }
+  };
+  form.addEventListener('input', redraw);
+  form.querySelectorAll('[data-example]').forEach((b) => b.addEventListener('click', async () => {
+    const e = EXAMPLES[b.dataset.example];
+    let price = '';
+    if (e.question.includes('PRICE')) {
+      // A line near today's price, so the outcome is not obvious.
+      const spot = await fetch(e.url).then((r) => r.json()).then((j) => Number(j.data.amount)).catch(() => 2000);
+      price = String(Math.round(spot / 25) * 25);
+    }
+    $('q').value = e.question.replaceAll('PRICE', Number(price).toLocaleString('en-US'));
+    $('rules').value = e.rules.replaceAll('PRICE', price);
+    $('url').value = e.url;
+    $('extract').value = e.extract;
+    out.innerHTML = '';
+    redraw();
+  }));
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const d = draft(), btn = $('check-btn');
+    if (!d.question || !d.sources[0].url) { out.innerHTML = '<p class="error">Write a question and give a source.</p>'; return; }
+    btn.disabled = true;
+    $('seal-btn').disabled = true;
+    out.innerHTML = '<p class="fs-plain fs-muted new-wait">Reading the source and asking three judges on secure hardware. This takes about half a minute.</p>';
+    try {
+      const res = await api('check', d);
+      out.innerHTML = await reviewHtml(d, res);
+      checked = JSON.stringify(d);
+      $('seal-btn').disabled = false;
+    } catch (e) {
+      out.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    }
+    btn.disabled = false;
+    btn.textContent = 'Check again';
+  });
+
+  $('seal-btn').addEventListener('click', async (e) => {
+    const btn = e.target;
+    btn.disabled = true;
+    btn.textContent = 'Sealing on NEAR…';
+    try {
+      const { id } = await api('create', draft());
+      location.hash = `#/m/${id}`;
+    } catch (err) {
+      out.insertAdjacentHTML('beforeend', `<p class="error">${esc(err.message)}</p>`);
+      btn.disabled = false;
+      btn.textContent = 'Seal it on NEAR';
+    }
+  });
+}
+
+/** The judges' reading of a draft, with each signature checked here in the browser. */
+async function reviewHtml(d, { review, readings, snapshots }) {
+  const { ed25519 } = await libs();
+  const signedOk = async (r) => {
+    const text = `${r.model}:${await sha256(r.request)}:${await sha256(r.response)}`;
+    const keys = await view('get_signers', { model: r.model }).catch(() => []);
+    return ed25519.verify(r.signature, utf8.encode(text), r.signer) && keys.includes(r.signer);
+  };
+  const outs = readings.map((r) => r.answer?.outcome ?? 'ERROR');
+  const word = (o) => ({ YES: 'Yes', NO: 'No', INVALID: 'Invalid', TOO_EARLY: 'Too early' })[o] ?? 'No answer';
+  const same = outs.every((o) => o === outs[0]) && outs[0] !== 'ERROR';
+  const vague = review.answer?.vague ?? [];
+  let verdict;
+  if (same && outs[0] === 'TOO_EARLY') verdict = ['warn', "The source doesn't settle it yet.", 'All three judges would answer Too early. A two-minute market needs a source that already holds the answer when trading closes.'];
+  else if (same && outs[0] === 'INVALID') verdict = ['warn', 'The judges call it unanswerable as written.', 'Tighten the rules or pick a source that states the value.'];
+  else if (same) verdict = [vague.length ? 'ok-loose' : 'ok', `All three judges read it the same way today: ${word(outs[0])}.`, vague.length ? 'Still, the judge found loose words below that could split readers on another day.' : 'No loose words found. This market is predictable.'];
+  else verdict = ['split', `The judges disagree: ${outs.map(word).join(', ')}.`, 'Two careful readers would bet on different outcomes. Fix the words below before you seal it.'];
+  const misquoted = readings.filter((r) => r.quote_found === false).map((r) => MODEL_NAME[r.model] ?? r.model);
+  if (misquoted.length) verdict = ['warn', verdict[1], `${verdict[2]} Also, ${misquoted.join(' and ')} quoted text that is not word for word in the source, and NEAR rejects such answers. Ask in the rules for the exact field to quote.`];
+  const checks = await Promise.all(readings.map(signedOk));
+  return `
+    <section class="review review-${verdict[0]}">
+      <h2 class="section-title">${esc(verdict[1])}</h2>
+      <p class="fs-plain fs-muted">${esc(verdict[2])}</p>
+      ${vague.length ? `<ul class="vague">${vague.map((v) => `<li><code>${esc(v.words)}</code><span>${esc(v.why)}</span>${v.instead ? `<span class="vague-fix">Instead: ${esc(v.instead)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+      ${review.answer?.sources ? `<p class="fs-plain new-fit"><strong>Source:</strong> ${esc(review.answer.sources)}</p>` : ''}
+      <ul class="readings">${readings.map((r, i) => `
+        <li>
+          <span class="reading-model">${esc(MODEL_NAME[r.model] ?? r.model)}${i === 0 ? ' <span class="fs-muted">(the judge)</span>' : ''}</span>
+          <span class="reading-word reading-${esc(outs[i].toLowerCase())}">${esc(word(outs[i]))}</span>
+          ${r.answer?.quote ? `<code class="reading-quote">${esc(r.answer.quote)}</code>` : `<span class="fs-muted">${esc(r.error ?? r.answer?.reason ?? '')}</span>`}
+          <span class="reading-checks">${checks[i] ? 'Signed by registered secure hardware' : 'Signature not verified'}${r.quote_found === true ? ' · quote found in the source' : r.quote_found === false ? ' · quote not found in the source' : ''}</span>
+        </li>`).join('')}
+      </ul>
+      <details class="fs-details"><summary>What the judges read</summary><pre class="snapshot">${esc(snapshots[0].slice(0, 2000))}</pre></details>
+      <p class="fs-when">Not binding: the verdict comes from the judge after trading closes.</p>
+    </section>`;
+}
+
+// ---------- live progress of a market this site moves forward ----------
+
+async function relayed(m) {
+  const { evm, evmAbi } = await libs();
+  return (await evm.readContract({ address: FORSETI_EVM, abi: evmAbi, functionName: 'verdictOf', args: [m.commitment_hash] })).outcome !== 0;
+}
+
+function liveSteps(m, onEvm, now = Date.now()) {
+  const p = m.commitment.params, deadline = ms(p.resolve_after);
+  const proposed = !!m.proposed, final = m.phase === 'Final';
+  const appealEnd = proposed ? ms(m.proposed_at) + ms(p.challenge_period) : null;
+  const clock = (t) => {
+    if (t - now > 3_600_000) return rel(t).replace(/^in /, '');
+    const s = Math.max(0, Math.round((t - now) / 1000));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const tooEarly = m.proposed?.outcome === 4;
+  return [
+    ['Sealed on NEAR', 'done', short(m.commitment_hash, 8)],
+    ['Trading closes', now >= deadline ? 'done' : 'now', now >= deadline ? utc(p.resolve_after) : `in ${clock(deadline)}`],
+    ['The judge answers on secure hardware', proposed || final ? 'done' : now >= deadline ? 'now' : 'todo', proposed ? `${WORD[m.proposed.outcome]}, signed by ${MODEL_NAME[m.proposed.model] ?? m.proposed.model}` : now >= deadline ? 'Reading the source…' : ''],
+    ['NEAR checks the signature and the quote', proposed || final ? 'done' : 'todo', proposed ? 'Accepted by the contract' : ''],
+    [m.phase === 'Disputed' ? 'The appeal panel votes' : tooEarly ? 'Too early: the judge asks again' : 'Appeals close', final ? 'done' : proposed || m.phase === 'Disputed' ? 'now' : 'todo', appealEnd && !final && m.phase === 'Proposed' ? `in ${clock(appealEnd)}` : ''],
+    ['Final, signed by NEAR Chain Signatures', m.evm_signature ? 'done' : final ? 'now' : 'todo', final ? `Final: ${WORD[m.outcome]}` : ''],
+    ['Recorded on Base Sepolia', onEvm ? 'done' : m.evm_signature ? 'now' : 'todo', onEvm ? 'Any EVM contract can now read it' : ''],
+  ];
+}
+
+/** Polls the market, asks the site's server to do the next step when it is due, and repaints. */
+function startLive(m0, seq) {
+  const panel = document.getElementById('live');
+  let m = m0, onEvm = false, busy = false, note = '', last = JSON.stringify([m.phase, m.outcome, !!m.evm_signature]);
+  const paint = () => {
+    panel.querySelector('ol').innerHTML = liveSteps(m, onEvm).map(([t, s, d]) => `<li class="live-step live-${s}"><span>${esc(t)}</span>${d ? `<small>${esc(d)}</small>` : ''}</li>`).join('');
+    panel.querySelector('.live-note').textContent = note;
+    const w = document.querySelector('.fs-verdict .fs-when');
+    if (w) w.textContent = when(m);
+  };
+  const due = () => {
+    const p = m.commitment.params, now = Date.now();
+    if (m.phase === 'Open') return now >= ms(p.resolve_after);
+    if (m.phase === 'Proposed') return now >= ms(m.proposed_at) + ms(p.challenge_period);
+    if (m.phase === 'Final') return !onEvm;
+    return true; // Resolving or Disputed
+  };
+  const tick = async () => {
+    if (seq !== current) return;
+    try {
+      m = await view('get_market', { id: m.commitment.id });
+      if (m.phase === 'Final' && m.evm_signature) onEvm = await relayed(m).catch(() => false);
+      const state = JSON.stringify([m.phase, m.outcome, !!m.evm_signature]);
+      if (state !== last) { last = state; refresh(m, onEvm, seq); }
+      if (due() && !busy) {
+        busy = true;
+        note = 'Asking the server to do the next step…';
+        api('advance', { id: m.commitment.id })
+          .then((r) => { note = r.did?.length ? `Done: ${r.did.join('; ')}.` : ''; })
+          .catch((e) => { note = e.message; })
+          .finally(() => { busy = false; });
+      }
+    } catch { /* RPC hiccup: try again next tick */ }
+    paint();
+    if (!(m.phase === 'Final' && onEvm)) setTimeout(tick, 3000);
+    else if (seq === current) setTimeout(() => document.getElementById('verify')?.click(), 500);
+  };
+  paint();
+  tick();
+}
+
+/** Repaints the market's main column when its state changes, keeping the live panel running. */
+async function refresh(m, onEvm, seq) {
+  if (seq !== current) return;
+  proofIndex = undefined; // a new ruling may have published its proof bundle since the page loaded
+  m.dispute = await view('get_dispute', { id: m.commitment.id }).catch(() => null);
+  const main = document.querySelector('.case-main');
+  if (!main) return;
+  const origin = (await replays()).find((o) => o.commitment_hash === m.commitment_hash);
+  main.innerHTML = `
+    ${answerBlock(m)}
+    ${origin ? originCard(m, origin) : ''}
+    <details class="fs-details" open><summary>How it was decided</summary>${timeline(m)}</details>
+    <details class="fs-details"><summary>For auditors</summary>${auditors(m, attestCache)}</details>`;
+  shown = m;
+}
+
 // ---------- routing ----------
 
 function loading(text) {
@@ -857,7 +1121,7 @@ async function roadmap() {
   });
 }
 
-const TITLES = { home: 'Forseti', markets: 'Forseti markets', docs: 'Forseti docs', roadmap: 'Forseti roadmap' };
+const TITLES = { home: 'Forseti', markets: 'Forseti markets', new: 'Seal a market · Forseti', docs: 'Forseti docs', roadmap: 'Forseti roadmap' };
 
 // Each navigation bumps `current`; a page whose data arrives after the visitor moved on does not paint.
 let current = 0;
@@ -866,7 +1130,7 @@ async function route() {
   const seq = ++current;
   const path = location.hash.slice(1);
   const id = path.match(/^[/]m[/](\d+)/)?.[1];
-  const page = id !== undefined || path.startsWith('/markets') ? 'markets' : path.startsWith('/docs') ? 'docs' : path.startsWith('/roadmap') ? 'roadmap' : 'home';
+  const page = id !== undefined || path.startsWith('/markets') ? 'markets' : path.startsWith('/new') ? 'new' : path.startsWith('/docs') ? 'docs' : path.startsWith('/roadmap') ? 'roadmap' : 'home';
   document.querySelectorAll('[data-nav]').forEach((a) => (a.dataset.nav === page ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
   document.title = TITLES[page];
   app.classList.toggle('wide', page === 'home');
@@ -874,10 +1138,11 @@ async function route() {
   // Markets always read NEAR, so say so at once; docs usually arrive before a loader would help.
   let slow = 0;
   if (page === 'markets') app.innerHTML = loading(id !== undefined ? `Reading market ${id} from NEAR…` : 'Reading the markets from NEAR…');
-  else if (page !== 'home') slow = setTimeout(() => { if (seq === current) app.innerHTML = loading(`Opening the ${page}…`); }, 200);
+  else if (page !== 'home' && page !== 'new') slow = setTimeout(() => { if (seq === current) app.innerHTML = loading(`Opening the ${page}…`); }, 200);
   try {
     if (id !== undefined) await market(Number(id));
     else if (page === 'markets') await register();
+    else if (page === 'new') newMarket();
     else if (page === 'docs') await docs(path.split('/')[2]);
     else if (page === 'roadmap') await roadmap();
     else await landing();

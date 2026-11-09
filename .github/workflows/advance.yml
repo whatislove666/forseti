@@ -1,0 +1,14 @@
+# Moves Forseti markets forward after their deadline: the judge answers, appeals close, the verdict
+# is finalized, signed by NEAR Chain Signatures and recorded on Base Sepolia. The work runs in the
+# site's server function; this job only calls it, so it needs no secrets.
+name: Advance markets
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - run: curl -fsSL --max-time 170 'https://forsetihq.xyz/api/advance?all=1'

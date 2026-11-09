@@ -1,0 +1,18 @@
+{
+  "name": "forseti-web",
+  "private": true,
+  "type": "module",
+  "description": "Static site plus the serverless functions in api/ that seal and advance visitor markets on Vercel.",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "node --env-file=.env dev.mjs"
+  },
+  "dependencies": {
+    "@noble/curves": "^1.9.7",
+    "@vercel/blob": "^2.0.0",
+    "near-kit": "^0.20.2",
+    "viem": "^2.57.16"
+  }
+}
