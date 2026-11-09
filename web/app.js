@@ -210,7 +210,7 @@ function stamp(m) {
 
 function when(m) {
   const p = m.commitment.params, last = rulings(m).at(-1)?.r;
-  if (m.phase === 'Final') return `Decided ${rel(ms(last?.at ?? p.resolve_after))}`;
+  if (m.phase === 'Final') return last ? `Decided ${rel(ms(last.at))}` : `Expired without a verdict ${rel(ms(p.resolve_by))}`;
   if (m.phase === 'Proposed') return `Appeals close ${rel(ms(m.proposed_at) + ms(p.challenge_period))}`;
   if (m.phase === 'Disputed') return 'The appeal panel is voting';
   return beforeDeadline(m) ? `Closes ${rel(ms(p.resolve_after))}` : 'Waiting for the judge';
@@ -270,7 +270,8 @@ function timeline(m) {
   if (m.phase === 'Final') {
     const note = overturned(m)
       ? `The verdict was overturned${m.appellant ? ' and the bond went back to the appellant' : ''}.`
-      : m.appellant ? 'The appeal was rejected and the bond went to the market creator.' : 'Nobody appealed in time.';
+      : m.appellant ? 'The appeal was rejected and the bond went to the market creator.'
+      : m.proposed ? 'Nobody appealed in time.' : 'No verdict was accepted before the deadline, so it settled as Invalid.';
     ev.push(['fs-event-final', `Final: ${WORD[m.outcome]}`, `${note}${m.evm_signature ? ' The answer is signed for other chains.' : ''}`]);
   }
   if (!ev.length) return '<p class="fs-plain fs-muted">Nothing has happened yet. Before the deadline anyone can ask the judge.</p>';

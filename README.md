@@ -221,8 +221,7 @@ On Nov 6 2026 this sealed 27 replays (markets 4–30). Of 21 settled markets acr
 weather, macro, politics, tech and culture, 20 came out the same as on their platform. The 21st is
 market 29: the contract rejected all four of the judge's answers there (three times it joined two price
 candles with a space where the source has a comma, once it used `...` elisions the contract did not accept
-yet). Unless a valid answer arrives first, anyone can settle it as Invalid by calling `finalize` after 18:44
-UTC on Nov 8. Market 30 replays the same question with an instruction to quote one continuous passage, and
+yet). No valid answer arrived before its deadline, so it settled as Invalid on Nov 9. Market 30 replays the same question with an instruction to quote one continuous passage, and
 agrees with Manifold.
 
 The contract was upgraded twice during and after this run, and the record shows it:

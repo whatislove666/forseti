@@ -204,9 +204,15 @@ export async function advance(id) {
       await openAndJudge(m, did);
     }
   } else if (m.phase === 'Resolving') {
-    if (!(await lock(`m${id}-r${m.round}-verdict`))) return busy('judging');
-    await rule(m, 'verdict', p.model, undefined, store);
-    did.push('the judge answered and NEAR accepted the answer');
+    if (now > BigInt(p.resolve_by)) {
+      if (!(await lock(`m${id}-final`))) return busy('signing');
+      await finalize(id);
+      did.push('expired without a verdict: settled as Invalid');
+    } else {
+      if (!(await lock(`m${id}-r${m.round}-verdict`))) return busy('judging');
+      await rule(m, 'verdict', p.model, undefined, store);
+      did.push('the judge answered and NEAR accepted the answer');
+    }
   } else if (m.phase === 'Proposed') {
     const end = BigInt(m.proposed_at) + BigInt(p.challenge_period);
     if (now < end) return wait('appeals', end);
