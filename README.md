@@ -46,7 +46,20 @@ in advance which model will judge, on what sources, and be able to check afterwa
 
 Open https://forsetihq.xyz/#/new.
 
-1. Click **A vague one, on purpose**, then **Check the wording**. In about half a minute you see:
+1. Paste `https://polymarket.com/event/will-zelenskyy-wear-a-suit-before-july` into **Start from a
+   Polymarket market**, click **Load**, then **Check the wording**. The form fills with Polymarket's own
+   question and rules, read from Polymarket's public API in your browser. In about 10 seconds the judge
+   lists the phrases two careful readers could take differently, each with a precise replacement. In our
+   runs it flagged "wearing a suit" first: the phrase this $242M market was disputed over. Polymarket
+   names no source for this market ("a consensus of credible reporting"), so only the wording is checked;
+   add a source to see the judges answer it and to seal it. An event with several markets, such as
+   `https://polymarket.com/event/fed-decision-in-december-20260729232808632`, lets you pick one.
+
+   A market sealed from Polymarket keeps the link in its sealed rules, and its page shows Polymarket's
+   result, read live, next to Forseti's: market 40 is the suit market with a Euronews report as its
+   source. A market that is still open on Polymarket closes here when it closes there: market 42, on AAA's
+   gas price, closed at 15:00 UTC on Nov 10.
+2. Click **A vague one, on purpose**, then **Check the wording**. In about half a minute you see:
    - the judge's notes on the words two honest readers could take differently ("cold", "the weather in
      Berlin"), each with a precise replacement;
    - how the judge and both other panel models read today's source.
@@ -54,17 +67,17 @@ Open https://forsetihq.xyz/#/new.
    Each answer is signed in NEAR AI Cloud's TEE. Your browser checks every signature against the keys
    registered on `forseti.testnet`. It also checks whether each quote is word for word in the source, the
    same check the contract runs on-chain.
-2. Click **ETH price** (its line is set near today's price), **Check the wording**, then **Seal it on
-   NEAR**. A demo account, `forseti-relay.testnet`, creates the market and pays the 2 NEAR storage deposit.
-   You land on the new market's page.
-3. Watch **Live on testnet**:
+3. Click **A fact on Wikipedia**, **Check the wording**, then **Seal it on NEAR**. A demo account,
+   `forseti-relay.testnet`, creates the market and pays the 2 NEAR storage deposit. You land on the new
+   market's page.
+4. Watch **Live on testnet**:
    - trading closes 2 minutes after sealing;
    - the sealed judge answers on secure hardware, and NEAR accepts the signed answer;
    - a 2-minute appeal window runs;
    - the verdict becomes final, NEAR Chain Signatures signs it, and Base Sepolia records it.
 
    When it is done, the page runs **Check it yourself** on its own, and every check passes in your browser.
-   Markets 31 and 32 went through these steps on Nov 9.
+   Markets 31, 32 and 39 went through these steps on Nov 9.
 
 The site's server is a set of Vercel functions in `api/`: `check`, `create` and `advance`.
 - **Not trusted.** It is one more executor that pays gas and model fees. The contract re-checks everything
@@ -73,8 +86,10 @@ The site's server is a set of Vercel functions in `api/`: `check`, `create` and 
 - **Limits.** At most 6 visitor markets per hour, plus a per-visitor rate limit.
 
 **Markets 33–35 resolve during judging** (Nov 16–18 UTC), on the Coinbase daily candles of ETH, NEAR and
-BTC. A scheduled GitHub Action (`.github/workflows/advance.yml`) calls `/api/advance?all=1` every 10
-minutes, so they settle with nobody at a keyboard. On the site they are under **Markets → Deciding live**.
+BTC. cron-job.org calls `/api/advance?all=1` every 5 minutes, so they settle with nobody at a keyboard;
+each call leaves one line in the Vercel logs. A scheduled GitHub Action (`.github/workflows/advance.yml`)
+calls it too, as a backup: GitHub runs it only a few times a day. On the site they are under
+**Markets → Deciding live**.
 
 ## Try it locally
 

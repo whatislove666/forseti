@@ -157,6 +157,35 @@ function originCard(m, o) {
     </section>`;
 }
 
+// A market a visitor copied from Polymarket names it in its sealed rules, so the link cannot change.
+const PM_LINK = /^Copied from Polymarket: (https:\/\/polymarket\.com\/(?:event|market)\/[\w/-]+)$/m;
+const pmLink = (m) => m.commitment.params.rules.match(PM_LINK)?.[1] ?? null;
+const pmCache = new Map();
+function polymarketOf(m) {
+  const url = pmLink(m);
+  if (!url) return Promise.resolve(null);
+  if (!pmCache.has(url)) pmCache.set(url, pmMarket(url.split('/').pop()).catch(() => null));
+  return pmCache.get(url).then((pm) => pm && { ...pm, url });
+}
+
+function polymarketCard(m, pm) {
+  const outcomes = parseList(pm.outcomes), prices = parseList(pm.outcomePrices).map(Number);
+  const won = pm.closed && prices.includes(1) ? outcomes[prices.indexOf(1)] : null;
+  const there = won ?? (pm.closed ? 'Closed' : `Open, ${outcomes[0] ?? 'Yes'} at ${Math.round((prices[0] ?? 0) * 100)}%`);
+  const forseti = m.phase === 'Final' ? WORD[m.outcome] : 'Not final yet';
+  const differs = won && m.phase === 'Final' && WORD[m.outcome].toLowerCase() !== String(won).toLowerCase();
+  return `
+    <section class="origin-card" aria-labelledby="pm-h">
+      <h2 class="section-title" id="pm-h">Copied from Polymarket</h2>
+      <p class="fs-plain">A visitor sealed ${link(pm.url, esc(pm.question))} with Polymarket's own question and rules, and named the source the judge reads.</p>
+      <dl class="versus">
+        <div><dt>Polymarket</dt><dd>${esc(there)}</dd></div>
+        <div class="${differs ? 'versus-differs' : ''}"><dt>Forseti</dt><dd>${esc(forseti)}</dd></div>
+      </dl>
+      <p class="origin-note">Polymarket's side is read live from its public API, Forseti's from the NEAR contract.</p>
+    </section>`;
+}
+
 // Proof bundles written by the site's server live in Vercel Blob, keyed by the response hash.
 const PROOF_STORE = 'https://zptmsq3050bfxgmn.public.blob.vercel-storage.com';
 let proofIndex;
@@ -199,11 +228,13 @@ function sealState(m) {
   return { Proposed: 'proposed', Disputed: 'disputed' }[m.phase] ?? 'open';
 }
 
+const appealsOpen = (m) => Date.now() < ms(m.proposed_at) + ms(m.commitment.params.challenge_period);
+
 function stamp(m) {
   if (m.phase === 'Final') return overturned(m)
     ? `<span class="fs-stamp fs-stamp-overturned">Final: ${WORD[m.outcome]}, overturned</span>`
     : `<span class="fs-stamp fs-stamp-final">Final: ${WORD[m.outcome]}</span>`;
-  if (m.phase === 'Proposed') return `<span class="fs-stamp fs-stamp-proposed">Verdict: ${WORD[m.proposed.outcome]}, open to appeal</span>`;
+  if (m.phase === 'Proposed') return `<span class="fs-stamp fs-stamp-proposed">Verdict: ${WORD[m.proposed.outcome]}${appealsOpen(m) ? ', open to appeal' : ''}</span>`;
   if (m.phase === 'Disputed') return '<span class="fs-stamp fs-stamp-disputed">Before the panel</span>';
   return `<span class="fs-stamp">${beforeDeadline(m) ? 'Open for trading' : 'Being decided'}</span>`;
 }
@@ -211,6 +242,7 @@ function stamp(m) {
 function when(m) {
   const p = m.commitment.params, last = rulings(m).at(-1)?.r;
   if (m.phase === 'Final') return last ? `Decided ${rel(ms(last.at))}` : `Expired without a verdict ${rel(ms(p.resolve_by))}`;
+  if (m.phase === 'Proposed' && !appealsOpen(m) && m.proposed.outcome === 4) return `The judge asks again ${rel(Math.min(ms(p.resolve_by), ms(m.proposed_at) + Math.max(TOO_EARLY_RETRY_MS, ms(p.challenge_period))))}`;
   if (m.phase === 'Proposed') return `Appeals close ${rel(ms(m.proposed_at) + ms(p.challenge_period))}`;
   if (m.phase === 'Disputed') return 'The appeal panel is voting';
   return beforeDeadline(m) ? `Closes ${rel(ms(p.resolve_after))}` : 'Waiting for the judge';
@@ -458,7 +490,7 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
 
     <section class="band band-wax" id="cta">
       <div class="band-inner band-cta">
-        <h2 class="cta-title">Seal a market and watch it get decided, in three minutes.</h2>
+        <h2 class="cta-title">Seal a market and watch it get decided, in about five minutes.</h2>
         <a class="btn-on-wax" href="#/new">Seal a market</a>
       </div>
     </section>`;
@@ -520,7 +552,7 @@ async function register() {
     return `
       <li><a class="fs-market" href="#/m/${m.commitment.id}">
         ${seal(m.commitment_hash, { state: sealState(m), size: 40 })}
-        <span class="fs-market-body"><span class="fs-market-q">${esc(m.commitment.params.question)}</span>${o ? originLine(m, o) : ''}</span>
+        <span class="fs-market-body"><span class="fs-market-q">${esc(m.commitment.params.question)}</span>${o ? originLine(m, o) : pmLink(m) ? '<span class="origin">Copied from Polymarket.</span>' : ''}</span>
         <span class="fs-market-meta">${stamp(m)}<span class="fs-when">${esc(when(m))}</span></span>
       </a></li>`;
   };
@@ -550,6 +582,13 @@ async function register() {
 // The market on screen and the published attestations, so a live repaint and the checks use the latest.
 let shown = null, attestCache = [];
 
+/** Fills the market page's Polymarket card, if the market was copied from Polymarket. */
+async function showPolymarket(m, seq) {
+  const pm = await polymarketOf(m);
+  const box = document.getElementById('pm-origin');
+  if (pm && box && seq === current) box.innerHTML = polymarketCard(m, pm);
+}
+
 async function market(id) {
   const seq = current;
   const [m, attest, origins, dispute] = await Promise.all([view('get_market', { id }), fetch('../executor/attestations.json').then((r) => (r.ok ? r.json() : [])).catch(() => []), replays(), view('get_dispute', { id }).catch(() => null)]);
@@ -566,7 +605,7 @@ async function market(id) {
     <div class="case">
       <div class="case-main">
         ${answerBlock(m)}
-        ${origin ? originCard(m, origin) : ''}
+        ${origin ? originCard(m, origin) : '<div id="pm-origin"></div>'}
         <details class="fs-details" ${m.phase === 'Open' ? '' : 'open'}><summary>How it was decided</summary>${timeline(m)}</details>
         <details class="fs-details"><summary>For auditors</summary>${auditors(m, attest)}</details>
       </div>
@@ -591,6 +630,7 @@ async function market(id) {
     e.target.textContent = on ? 'Hide details' : 'Show details';
   });
   if (open) document.getElementById('ask').addEventListener('submit', (e) => ask(e, m));
+  if (!origin) showPolymarket(m, seq);
   if (live) startLive(m, seq);
 }
 
@@ -811,6 +851,7 @@ async function ask(e, m) {
 // ---------- seal a market (served by api/ on forsetihq.xyz) ----------
 
 const RELAY = 'forseti-relay.testnet';
+const TOO_EARLY_RETRY_MS = 3_600_000; // after a Too early answer the server asks the judge again hourly (api/_lib/engine.mjs)
 // Markets the site's server moves forward after their deadline: visitors' and the team's.
 const LIVE_CREATORS = [RELAY, CONTRACT];
 const MODEL_NAME = { 'z-ai/glm-5.3-flash': 'GLM 5.3 Flash', 'Qwen/Qwen3.6-35B-A3B-FP8': 'Qwen 3.6 35B', 'Qwen/Qwen3.8-27B': 'Qwen 3.8 27B' };
@@ -839,6 +880,54 @@ const EXAMPLES = [
   },
 ];
 
+// A market from Polymarket: its public API answers browsers directly, so nothing goes through our server.
+const GAMMA = 'https://gamma-api.polymarket.com';
+const parseList = (s) => { try { return JSON.parse(s); } catch { return []; } };
+const gamma = (q) => fetch(`${GAMMA}/${q}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Polymarket answered ${r.status}. Try again in a moment.`))));
+/** One market by its slug. The markets endpoint lists closed markets only when asked for them. */
+const pmMarket = (slug) => Promise.all(['', '&closed=true'].map((c) => gamma(`markets?slug=${encodeURIComponent(slug)}${c}`))).then(([open, closed]) => open[0] ?? closed[0] ?? null);
+const MAX_CLOSE_DAYS = 90; // the server's limit for a market that closes when Polymarket's does
+
+/** The markets behind a Polymarket link: every market of an event, or the one the link names. */
+async function polymarkets(link) {
+  let u;
+  try { u = new URL(link); } catch { u = null; }
+  let parts = u ? u.pathname.split('/').filter(Boolean) : [];
+  if (/^[a-z]{2}(-[a-z]{2})?$/i.test(parts[0] ?? '')) parts.shift(); // a translated page: /es/event/…
+  if (parts[0] === 'sports' && parts.length > 2) parts = ['event', parts.at(-1)]; // a game page: /sports/nba/<event>
+  const [kind, slug, sub] = parts;
+  if (!u || !/(^|\.)polymarket\.com$/.test(u.hostname) || !['event', 'market'].includes(kind) || !slug) {
+    throw new Error('Paste a link to a Polymarket event or market, like https://polymarket.com/event/…');
+  }
+  const list = kind === 'event' ? (await gamma(`events?slug=${encodeURIComponent(slug)}`))[0]?.markets ?? [] : await pmMarket(slug).then((m) => (m ? [m] : []));
+  const markets = sub ? list.filter((m) => m.slug === sub) : list;
+  if (!markets.length) throw new Error('Polymarket has no market at this link.');
+  return markets.map((m) => ({ ...m, link: kind === 'event' ? `https://polymarket.com/event/${slug}/${m.slug}` : `https://polymarket.com/market/${m.slug}` }));
+}
+
+/** A Polymarket market as a draft for this form, and what the visitor should know about it. */
+function fromPolymarket(m) {
+  const desc = String(m.description ?? '').trim();
+  const credit = `\n\nCopied from Polymarket: ${m.link}`;
+  const rules = desc.length + credit.length > 2000 ? `${desc.slice(0, 2000 - credit.length - 1).trimEnd()}…${credit}` : desc + credit;
+  // The source Polymarket names, else the first web address in its rules.
+  const named = /^https:\/\/\S+$/.test(m.resolutionSource ?? '') ? m.resolutionSource : (desc.match(/https:\/\/[^\s)"'<>]+/) ?? [''])[0].replace(/[.,;:]+$/, '');
+  const outcomes = parseList(m.outcomes), prices = parseList(m.outcomePrices);
+  const notes = [], end = Date.parse(m.endDate), now = Date.now();
+  // An open market closes here when it closes on Polymarket, if that is within the server's limits.
+  const closes_at = !m.closed && end > now + 15 * 60_000 && end < now + MAX_CLOSE_DAYS * 86_400_000 ? m.endDate : null;
+  const endDay = Number.isFinite(end) ? new Date(end).toLocaleString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : '';
+  if (m.closed) notes.push(prices.includes('1') ? `Closed on Polymarket, resolved ${outcomes[prices.indexOf('1')]}.` : 'Closed on Polymarket.');
+  else if (closes_at) notes.push(`Open on Polymarket until ${endDay} UTC. Sealed here, trading closes then too, and the judge answers after it. Today the judges can only tell whether the sources already settle it.`);
+  else if (!Number.isFinite(end)) notes.push('Open on Polymarket, with no closing date. Sealed here, trading closes two minutes after sealing.');
+  else if (end <= now) notes.push(`Polymarket's closing date, ${endDay} UTC, has passed, but it has not resolved the market yet. Sealed here, trading closes two minutes after sealing.`);
+  else notes.push(`Open on Polymarket until ${endDay} UTC. That is ${end > now + 15 * 60_000 ? `more than ${MAX_CLOSE_DAYS} days away` : 'too soon to wait for'}, so sealed here, trading closes two minutes after sealing.`);
+  if (outcomes.length && outcomes.join('/') !== 'Yes/No') notes.push(`Its outcomes are ${outcomes.join(' and ')}, not Yes and No. Rewrite the question as a yes-or-no one before you seal it.`);
+  if (!named) notes.push(`Polymarket names no source the judge could read${/consensus of credible reporting/i.test(desc) ? ': it relies on "a consensus of credible reporting"' : ''}. You can check the wording now, and add a source to seal it.`);
+  if (desc.length + credit.length > 2000) notes.push('Its rules were cut to 2,000 characters, the most a market holds.');
+  return { question: String(m.question ?? '').slice(0, 300), rules, url: named.length <= 300 ? named : '', closes_at, notes };
+}
+
 async function api(path, body) {
   const res = await fetch(`/api/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const out = await res.json().catch(() => ({ error: `The server answered ${res.status}.` }));
@@ -850,15 +939,20 @@ function newMarket() {
   app.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">Seal a market</h1>
-      <p class="fs-plain fs-muted new-lede">Write a question and its rules. Three sealed judges read your wording first, then you seal it on NEAR testnet. Trading closes two minutes later, and you watch the judge decide on secure hardware, NEAR check the answer and Base Sepolia receive it. No wallet or key needed: a demo account pays the gas.</p>
+      <p class="fs-plain fs-muted new-lede">Write a question and its rules, or start from a market on Polymarket. Three sealed judges read your wording first, then you seal it on NEAR testnet. Trading closes two minutes later, and you watch the judge decide on secure hardware, NEAR check the answer and Base Sepolia receive it. No wallet or key needed: a demo account pays the gas.</p>
     </div>
     <div class="case">
       <form class="new-form" id="new" novalidate>
-        <div class="new-examples"><span class="fs-muted">Start from an example:</span>${EXAMPLES.map((e, i) => `<button type="button" class="fs-btn fs-btn-quiet" data-example="${i}">${esc(e.label)}</button>`).join('')}</div>
+        <div class="fs-field new-import">
+          <label for="pm">Start from a Polymarket market <span class="fs-muted">(optional)</span></label>
+          <div class="new-import-row"><input id="pm" class="fs-input" type="url" placeholder="https://polymarket.com/event/…"><button type="button" class="fs-btn fs-btn-quiet" id="pm-btn">Load</button></div>
+          <div id="pm-out" aria-live="polite"></div>
+        </div>
+        <div class="new-examples"><span class="fs-muted">Or start from an example:</span>${EXAMPLES.map((e, i) => `<button type="button" class="fs-btn fs-btn-quiet" data-example="${i}">${esc(e.label)}</button>`).join('')}</div>
         <div class="fs-field"><label for="q">Question</label><input id="q" class="fs-input new-text" maxlength="300" required placeholder="Will it rain in London when trading closes?"></div>
         <div class="fs-field"><label for="rules">Rules the judge must follow</label><textarea id="rules" class="fs-input new-text" rows="4" maxlength="2000" placeholder="Which value decides, from which source, and where the line is."></textarea></div>
         <div class="new-source">
-          <div class="fs-field"><label for="url">Source the judge reads</label><input id="url" class="fs-input" type="url" required placeholder="https://api.open-meteo.com/v1/forecast?…"></div>
+          <div class="fs-field"><label for="url">Source the judge reads</label><input id="url" class="fs-input" type="url" placeholder="https://api.open-meteo.com/v1/forecast?…"></div>
           <div class="fs-field"><label for="extract">Field to read <span class="fs-muted">(optional, for JSON)</span></label><input id="extract" class="fs-input" placeholder="$.current"></div>
         </div>
         <p class="new-note fs-muted">The judge reads this source once trading closes, so it must already hold the answer by then: a live price, today's weather, a page that states a fact.</p>
@@ -887,7 +981,11 @@ function newMarket() {
   const form = document.getElementById('new');
   const $ = (id) => document.getElementById(id);
   const out = $('new-out');
-  const draft = () => ({ question: $('q').value.trim(), rules: $('rules').value.trim(), sources: [{ id: 'source', url: $('url').value.trim(), extract: $('extract').value.trim() }] });
+  let closesAt = null; // set by a Polymarket market that is still open
+  const draft = () => {
+    const url = $('url').value.trim();
+    return { question: $('q').value.trim(), rules: $('rules').value.trim(), sources: url ? [{ id: 'source', url, extract: $('extract').value.trim() }] : [], ...(closesAt && { closes_at: closesAt }) };
+  };
   let checked = null;
   const redraw = async () => {
     const d = draft();
@@ -895,6 +993,35 @@ function newMarket() {
     if (checked && checked !== JSON.stringify(d)) { $('seal-btn').disabled = true; checked = null; }
   };
   form.addEventListener('input', redraw);
+
+  // Polymarket: load the link, let the visitor pick one market of an event, fill the form from it.
+  const fill = (m) => {
+    const d = fromPolymarket(m);
+    $('q').value = d.question;
+    $('rules').value = d.rules;
+    $('url').value = d.url;
+    $('extract').value = '';
+    closesAt = d.closes_at;
+    $('pm-notes').innerHTML = d.notes.map((n) => `<p class="new-note fs-muted">${esc(n)}</p>`).join('');
+    out.innerHTML = '';
+    redraw();
+  };
+  const load = async () => {
+    const btn = $('pm-btn'), box = $('pm-out');
+    btn.disabled = true;
+    box.innerHTML = '<p class="new-note fs-muted">Loading from Polymarket…</p>';
+    try {
+      const markets = await polymarkets($('pm').value.trim());
+      box.innerHTML = `${markets.length > 1 ? `<select id="pm-pick" class="fs-input" aria-label="Market in this event">${markets.map((m, i) => `<option value="${i}">${esc(m.groupItemTitle || m.question)}${m.closed ? ' (closed)' : ''}</option>`).join('')}</select>` : ''}<div id="pm-notes"></div>`;
+      if (markets.length > 1) $('pm-pick').addEventListener('change', (e) => fill(markets[e.target.value]));
+      fill(markets[0]);
+    } catch (e) {
+      box.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    }
+    btn.disabled = false;
+  };
+  $('pm-btn').addEventListener('click', load);
+  $('pm').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); load(); } });
   form.querySelectorAll('[data-example]').forEach((b) => b.addEventListener('click', async () => {
     const e = EXAMPLES[b.dataset.example];
     let price = '';
@@ -907,6 +1034,8 @@ function newMarket() {
     $('rules').value = e.rules.replaceAll('PRICE', price);
     $('url').value = e.url;
     $('extract').value = e.extract;
+    closesAt = null;
+    $('pm-out').innerHTML = '';
     out.innerHTML = '';
     redraw();
   }));
@@ -914,15 +1043,15 @@ function newMarket() {
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const d = draft(), btn = $('check-btn');
-    if (!d.question || !d.sources[0].url) { out.innerHTML = '<p class="error">Write a question and give a source.</p>'; return; }
+    if (!d.question) { out.innerHTML = '<p class="error">Write a question.</p>'; return; }
     btn.disabled = true;
     $('seal-btn').disabled = true;
-    out.innerHTML = '<p class="fs-plain fs-muted new-wait">Reading the source and asking three judges on secure hardware. This takes about half a minute.</p>';
+    out.innerHTML = `<p class="fs-plain fs-muted new-wait">${d.sources.length ? 'Reading the source and asking three judges on secure hardware. This takes about half a minute.' : 'Asking the judge on secure hardware to read the wording. This takes a few seconds.'}</p>`;
     try {
       const res = await api('check', d);
       out.innerHTML = await reviewHtml(d, res);
       checked = JSON.stringify(d);
-      $('seal-btn').disabled = false;
+      $('seal-btn').disabled = !d.sources.length; // the judge needs something to read at the deadline
     } catch (e) {
       out.innerHTML = `<p class="error">${esc(e.message)}</p>`;
     }
@@ -953,10 +1082,23 @@ async function reviewHtml(d, { review, readings, snapshots }) {
     const keys = await view('get_signers', { model: r.model }).catch(() => []);
     return ed25519.verify(r.signature, utf8.encode(text), r.signer) && keys.includes(r.signer);
   };
+  const vague = review.answer?.vague ?? [];
+  const vagueHtml = vague.length ? `<ul class="vague">${vague.map((v) => `<li><code>${esc(v.words)}</code><span>${esc(v.why)}</span>${v.instead ? `<span class="vague-fix">Instead: ${esc(v.instead)}</span>` : ''}</li>`).join('')}</ul>` : '';
+  const sourceHtml = review.answer?.sources ? `<p class="fs-plain new-fit"><strong>Source:</strong> ${esc(review.answer.sources)}</p>` : '';
+  if (!readings.length) {
+    if (!review.answer) return `<p class="error">The judge's review came back unreadable. Check again.</p>`;
+    const n = vague.length;
+    return `
+    <section class="review review-${n ? 'warn' : 'ok-loose'}">
+      <h2 class="section-title">${n ? `The judge found ${n} ${n === 1 ? 'phrase' : 'phrases'} two careful readers could take differently.` : 'The judge found no loose words.'}</h2>
+      <p class="fs-plain fs-muted">Add a source the judge can read when trading closes to see how all three judges would answer today, then seal it.</p>
+      ${vagueHtml}${sourceHtml}
+      <p class="reading-checks">${(await signedOk(review)) ? 'Signed by registered secure hardware' : 'Signature not verified'}</p>
+    </section>`;
+  }
   const outs = readings.map((r) => r.answer?.outcome ?? 'ERROR');
   const word = (o) => ({ YES: 'Yes', NO: 'No', INVALID: 'Invalid', TOO_EARLY: 'Too early' })[o] ?? 'No answer';
   const same = outs.every((o) => o === outs[0]) && outs[0] !== 'ERROR';
-  const vague = review.answer?.vague ?? [];
   let verdict;
   if (same && outs[0] === 'TOO_EARLY') verdict = ['warn', "The source doesn't settle it yet.", 'All three judges would answer Too early. A two-minute market needs a source that already holds the answer when trading closes.'];
   else if (same && outs[0] === 'INVALID') verdict = ['warn', 'The judges call it unanswerable as written.', 'Tighten the rules or pick a source that states the value.'];
@@ -969,8 +1111,8 @@ async function reviewHtml(d, { review, readings, snapshots }) {
     <section class="review review-${verdict[0]}">
       <h2 class="section-title">${esc(verdict[1])}</h2>
       <p class="fs-plain fs-muted">${esc(verdict[2])}</p>
-      ${vague.length ? `<ul class="vague">${vague.map((v) => `<li><code>${esc(v.words)}</code><span>${esc(v.why)}</span>${v.instead ? `<span class="vague-fix">Instead: ${esc(v.instead)}</span>` : ''}</li>`).join('')}</ul>` : ''}
-      ${review.answer?.sources ? `<p class="fs-plain new-fit"><strong>Source:</strong> ${esc(review.answer.sources)}</p>` : ''}
+      ${vagueHtml}
+      ${sourceHtml}
       <ul class="readings">${readings.map((r, i) => `
         <li>
           <span class="reading-model">${esc(MODEL_NAME[r.model] ?? r.model)}${i === 0 ? ' <span class="fs-muted">(the judge)</span>' : ''}</span>
@@ -994,13 +1136,13 @@ async function relayed(m) {
 function liveSteps(m, onEvm, now = Date.now()) {
   const p = m.commitment.params, deadline = ms(p.resolve_after);
   const proposed = !!m.proposed, final = m.phase === 'Final';
-  const appealEnd = proposed ? ms(m.proposed_at) + ms(p.challenge_period) : null;
+  const tooEarly = m.proposed?.outcome === 4;
+  const appealEnd = proposed ? ms(m.proposed_at) + (tooEarly ? Math.max(TOO_EARLY_RETRY_MS, ms(p.challenge_period)) : ms(p.challenge_period)) : null;
   const clock = (t) => {
     if (t - now > 3_600_000) return rel(t).replace(/^in /, '');
     const s = Math.max(0, Math.round((t - now) / 1000));
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   };
-  const tooEarly = m.proposed?.outcome === 4;
   return [
     ['Sealed on NEAR', 'done', short(m.commitment_hash, 8)],
     ['Trading closes', now >= deadline ? 'done' : 'now', now >= deadline ? utc(p.resolve_after) : `in ${clock(deadline)}`],
@@ -1025,7 +1167,7 @@ function startLive(m0, seq) {
   const due = () => {
     const p = m.commitment.params, now = Date.now();
     if (m.phase === 'Open') return now >= ms(p.resolve_after);
-    if (m.phase === 'Proposed') return now >= ms(m.proposed_at) + ms(p.challenge_period);
+    if (m.phase === 'Proposed') return now >= Math.min(ms(p.resolve_by), ms(m.proposed_at) + (m.proposed?.outcome === 4 ? Math.max(TOO_EARLY_RETRY_MS, ms(p.challenge_period)) : ms(p.challenge_period)));
     if (m.phase === 'Final') return !onEvm;
     return true; // Resolving or Disputed
   };
@@ -1063,10 +1205,11 @@ async function refresh(m, onEvm, seq) {
   const origin = (await replays()).find((o) => o.commitment_hash === m.commitment_hash);
   main.innerHTML = `
     ${answerBlock(m)}
-    ${origin ? originCard(m, origin) : ''}
+    ${origin ? originCard(m, origin) : '<div id="pm-origin"></div>'}
     <details class="fs-details" open><summary>How it was decided</summary>${timeline(m)}</details>
     <details class="fs-details"><summary>For auditors</summary>${auditors(m, attestCache)}</details>`;
   shown = m;
+  showPolymarket(m, seq);
 }
 
 // ---------- routing ----------

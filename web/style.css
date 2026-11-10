@@ -257,6 +257,11 @@ main.wide + .foot { border-top: 0; }
 /* ---------- seal a market ---------- */
 .new-lede { max-width: 68ch; }
 .new-form { display: grid; gap: var(--space-4); min-width: 0; }
+.new-import { padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }
+.new-import-row { display: flex; gap: var(--space-3); }
+.new-import-row .fs-input { flex: 1; min-width: 0; }
+#pm-out { display: grid; gap: var(--space-2); }
+#pm-notes { display: grid; gap: var(--space-1); }
 .new-examples { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); font: 400 14px/21px var(--font-sans); }
 .new-examples .fs-btn { font-size: 14px; padding: 7px 12px; }
 .new-text { font: 400 16px/24px var(--font-sans); resize: vertical; }
