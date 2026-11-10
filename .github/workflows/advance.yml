@@ -4,7 +4,8 @@
 name: Advance markets
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    # Off the top of the hour: GitHub delays or drops scheduled runs most often at :00.
+    - cron: '3,13,23,33,43,53 * * * *'
   workflow_dispatch:
 jobs:
   advance:

@@ -46,7 +46,7 @@ main.wide + .foot { border-top: 0; }
 /* A market: the case on the left, Check it yourself on the right */
 .case { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--space-12); align-items: start; }
 .case-main { display: grid; gap: var(--space-8); min-width: 0; }
-.case-side { position: sticky; top: 20px; display: grid; gap: var(--space-6); max-height: calc(100vh - 40px); overflow-y: auto; }
+.case-side { position: sticky; top: 20px; display: grid; gap: var(--space-6); max-height: calc(100vh - 40px); overflow-y: auto; overflow-wrap: anywhere; }
 .section-title { font: 600 20px/26px var(--font-display); margin: 0; }
 .fs-details > summary { font-family: var(--font-display); font-size: 20px; line-height: 26px; }
 .fs-details .fs-timeline, .fs-details .fs-facts, .fs-details .sub { margin-top: var(--space-4); }
