@@ -287,7 +287,7 @@ export function endpoint(fn, { perMinute = 20 } = {}) {
       try {
         if (tooMany(req, perMinute)) throw new UserError('Too many requests from you in the last minute. Wait a moment.', 429);
         const input = req.method === 'POST' ? await req.json().catch(() => { throw new UserError('Send JSON.'); }) : Object.fromEntries(new URL(req.url).searchParams);
-        return Response.json(await fn(input), { headers: { 'Cache-Control': 'no-store' } });
+        return Response.json(await fn(input, req), { headers: { 'Cache-Control': 'no-store' } });
       } catch (e) {
         if (!(e instanceof UserError)) console.error(e);
         return Response.json({ error: e.message }, { status: e.status ?? 500, headers: { 'Cache-Control': 'no-store' } });
