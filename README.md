@@ -2,6 +2,16 @@
 
 A judge for prediction markets that is fixed before trading starts and checked on NEAR.
 
+**Live:** https://www.forsetihq.xyz · **Try it in 5 minutes, no wallet:** https://www.forsetihq.xyz/#/new ·
+**X:** [@forsetihq](https://x.com/forsetihq)
+
+[![Market 4 on forsetihq.xyz: the sealed judge's verdict, the quote it relied on, and the checks the browser re-runs](docs/img/market-4.png)](https://www.forsetihq.xyz/#/m/4)
+
+*Market 4 replays Polymarket's $242M market "Will Zelenskyy wear a suit before July?", which UMA token
+holders resolved No. Forseti's sealed judge answered Yes from the Kyiv Post's report, the three appeal judges
+agreed, and the browser re-runs all 39 checks against NEAR and Base Sepolia. A replay reads today's copies
+of its sources, so it shows how a sealed judge reads the evidence, not what it would have said on the day.*
+
 A market commits to a model, a system prompt, its sources and a three-model appeal panel. After the
 event deadline the NEAR contract builds the exact request for the model, verifies the NEAR AI Cloud
 TEE signature over that request and the answer, and checks that the quoted evidence is in the source
@@ -18,10 +28,22 @@ under **Docs** and **Roadmap**.
 ## Problem
 
 Crypto prediction markets such as Polymarket settle disputes with token votes (UMA): the holders who vote
-can also trade on the same platform. Models can already settle most of these questions, but traders need to know
-in advance which model will judge, on what sources, and be able to check afterwards that it really did.
+can also trade on the same platform. Models can already settle most of these questions, but traders need
+to know in advance which model will judge, on what sources, and be able to check afterwards that it really
+did.
 
 ## How it works
+
+```mermaid
+flowchart TD
+  A["Sealed on NEAR: model, prompt, sources, appeal panel"] --> B["After the deadline the judge answers in a TEE (NEAR AI Cloud)"]
+  B --> C["The NEAR contract checks the signature, the request and the quote"]
+  C --> D{"Appeal window"}
+  D -- "no appeal" --> F["Final, signed once by NEAR Chain Signatures"]
+  D -- "appeal with a bond" --> E["Three sealed models vote, the majority wins"]
+  E --> F
+  F --> H["Any EVM chain reads it (Forseti.sol on Base Sepolia)"]
+```
 
 1. `create_market` stores the commitment: question, rules, model, system prompt, sources, seed, panel,
    deadlines, appeal bond. `commitment_hash = sha256(commitment JSON)` keys the market on other chains.
@@ -55,10 +77,13 @@ Open https://forsetihq.xyz/#/new.
    add a source to see the judges answer it and to seal it. An event with several markets, such as
    `https://polymarket.com/event/fed-decision-in-december-20260729232808632`, lets you pick one.
 
+   ![The wording check on Polymarket's own rules for the suit market: "wearing a suit" flagged first, with a precise replacement](docs/img/wording-check.png)
+
    A market sealed from Polymarket keeps the link in its sealed rules, and its page shows Polymarket's
    result, read live, next to Forseti's: market 40 is the suit market with a Euronews report as its
    source. A market that is still open on Polymarket closes here when it closes there: market 42, on AAA's
-   gas price, closed at 15:00 UTC on Nov 10.
+   gas price, closed at 15:00 UTC on Nov 10. The judge answered No from AAA's page at the close, and the
+   verdict was final and on Base Sepolia minutes later, while Polymarket still showed the market open.
 2. Click **A vague one, on purpose**, then **Check the wording**. In about half a minute you see:
    - the judge's notes on the words two honest readers could take differently ("cold", "the weather in
      Berlin"), each with a precise replacement;
@@ -122,10 +147,10 @@ NEAR AI Cloud key.
 
 ### Verify in the browser
 
-The web page (`web/`, no build step, no backend) reads the markets from NEAR and re-runs every check
-in your browser. It uses the Forseti design system in `web/design/`: every market has a seal drawn from
-its commitment hash, and the page shows the answer first, how it was decided second, and the technical
-details under **For auditors**.
+The web page (`web/`, no build step) reads the markets from NEAR and re-runs every check in your
+browser; only **Seal a market** uses the server functions in `api/`. It uses the Forseti design system
+in `web/design/`: every market has a seal drawn from its commitment hash, and the page shows the answer
+first, how it was decided second, and the technical details under **For auditors**.
 
 1. From the repository root run `python3 -m http.server 5173 --bind 127.0.0.1` and open
    `http://localhost:5173/web/`. Keep the `--bind`: the server shares the whole folder, including your
@@ -216,7 +241,7 @@ replaces 6.3 °C with 1.8 °C in the snapshot before asking the judge.
 | Relay and claim | [relay](https://sepolia.basescan.org/tx/0x8f0b133eda138b78d37c44331f881ccd7b0335d3f6a2312f4f624552c1229de1), [claim](https://sepolia.basescan.org/tx/0xe3fdb4ff9cdc432d06a80f36f942bdff9bd635655968df2ecf7e985a9ec7ae20) | the YES bettor takes the 0.003 ETH pool |
 
 On the web page, market 3 shows the forged verdict next to the panel votes. **Check it yourself** passes
-all 33 checks and adds two notes: the verdict's bundle is marked as forged, and its snapshot hash differs from
+all 38 checks and adds two notes: the verdict's bundle is marked as forged, and its snapshot hash differs from
 the one the panel used.
 
 ## Replays of real markets
@@ -236,8 +261,8 @@ On Nov 6 2026 this sealed 27 replays (markets 4–30). Of 21 settled markets acr
 weather, macro, politics, tech and culture, 20 came out the same as on their platform. The 21st is
 market 29: the contract rejected all four of the judge's answers there (three times it joined two price
 candles with a space where the source has a comma, once it used `...` elisions the contract did not accept
-yet). No valid answer arrived before its deadline, so it settled as Invalid on Nov 9. Market 30 replays the same question with an instruction to quote one continuous passage, and
-agrees with Manifold.
+yet). No valid answer arrived before its deadline, so it settled as Invalid on Nov 9. Market 30 replays
+the same question with an instruction to quote one continuous passage, and agrees with Manifold.
 
 The contract was upgraded twice during and after this run, and the record shows it:
 - At 18:58 UTC on Nov 6 the quote check learned to accept `...` elisions and typographic dashes. Markets
@@ -295,7 +320,8 @@ evidence, not what any oracle would have said on the day.
   schedule). Proof bundles they write go to Vercel Blob, keyed by response hash.
 - `dev.mjs`: local stand-in for Vercel (`npm i && npm run dev`, then http://localhost:8787). It uses the
   `RELAY_*` and `EVM_RELAY_*` keys from `.env`; see `.env.example`.
-- `.github/workflows/advance.yml`: the 10-minute schedule that moves markets forward
+- `.github/workflows/advance.yml`: a backup schedule that moves markets forward; the main one is
+  cron-job.org, every 5 minutes
 - `docs/`: documentation and roadmap, in Markdown
 
 ## Credits
