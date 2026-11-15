@@ -413,7 +413,7 @@ async function landing() {
           </div>
         </div>
         <div class="hero-side">
-          <div class="seal-stack hero-seal" id="hero-seal" aria-hidden="true">${turningSeal(heroHash)}</div>
+          <div class="seal-stack turning hero-seal" id="hero-seal" aria-hidden="true">${turningSeal(heroHash)}</div>
           <div class="hero-try">
             <label class="hero-note" for="hero-rule" id="hero-note">The seal of market ${HERO.id}, drawn from its rules. Change one word and the seal changes. Try it:</label>
             <input class="fs-input hero-rule" id="hero-rule" type="text" autocomplete="off" spellcheck="false" placeholder="Yes if Berlin is above 3 °C at noon">
@@ -672,7 +672,7 @@ async function register() {
   app.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">Markets</h1>
-      <p class="fs-plain fs-muted">Every market here has its judge sealed on NEAR before it was decided. Open one to see the answer, how it was decided, and to check every step yourself.</p>
+      <p class="page-lede">Every market here has its judge sealed on NEAR before it was decided. Open one to see the answer, how it was decided, and to check every step yourself.</p>
     </div>
     ${group('Deciding live', 'Markets on real prices that close during judging, 16 to 18 November. Each is decided by its sealed judge on schedule, and you can ask the judge today how it reads the source.', markets.filter((m) => kind(m) === 'live'))}
     ${group('Disputed on their platform', 'Markets whose official outcome was fought over, sealed again here and judged from public sources, next to what the platform decided.', markets.filter((m) => kind(m) === 'disputed'))}
@@ -1040,13 +1040,15 @@ async function api(path, body) {
   return out;
 }
 
+const EMPTY_HASH = '0x'.padEnd(66, '0');
 function newMarket() {
   app.innerHTML = `
+    <div class="new-page">
     <div class="page-head">
-      <h1 class="page-title">Seal a market</h1>
-      <p class="fs-plain fs-muted new-lede">Write a question and its rules, or start from a market on Polymarket. Three sealed judges read your wording first, then you seal it on NEAR testnet. Trading closes two minutes later, and you watch the judge decide on secure hardware, NEAR check the answer and Base Sepolia receive it. No wallet or key needed: a demo account pays the gas.</p>
+      <h1 class="page-title">Seal a <em>market</em></h1>
+      <p class="page-lede">Write a question and its rules, or start from a market on Polymarket. Three sealed judges read your wording first, then you seal it on NEAR testnet. Trading closes two minutes later, and you watch the judge decide on secure hardware, NEAR check the answer and Base Sepolia receive it. No wallet or key needed: a demo account pays the gas.</p>
     </div>
-    <div class="case">
+    <div class="new-case">
       <form class="new-form" id="new" novalidate>
         <div class="fs-field new-import">
           <label for="pm">Start from a Polymarket market <span class="fs-muted">(optional)</span></label>
@@ -1067,21 +1069,21 @@ function newMarket() {
         </div>
         <div id="new-out" aria-live="polite"></div>
       </form>
-      <aside class="case-side">
-        <section class="fs-panel new-preview">
-          <div id="draft-seal">${seal('0x'.padEnd(66, '0'), { state: 'open', size: 200 })}</div>
-          <p class="fs-plain fs-muted">Drawn from what you typed. Change one word and the seal changes. Once sealed, the market's seal also covers its deadline and number, and nothing in it can change.</p>
-        </section>
-        <section class="fs-panel">
-          <h2 class="section-title">What happens</h2>
-          <ol class="new-steps">
-            <li>The judge and two other models read your draft against today's source. Their answers are signed by secure hardware.</li>
-            <li>You seal it: the question, rules, source, judge and appeal panel go on NEAR as one hash.</li>
-            <li>Two minutes later the judge answers, and NEAR checks the signature and the quote.</li>
-            <li>After a two-minute appeal window the verdict is final, signed by NEAR Chain Signatures and recorded on Base Sepolia.</li>
-          </ol>
-        </section>
+      <aside class="new-side">
+        <div class="seal-stack turning draft-seal" id="draft-seal" role="img" aria-label="The seal drawn from your draft">${turningSeal(EMPTY_HASH)}</div>
+        <code class="hero-hash" id="draft-hash">${EMPTY_HASH}</code>
+        <p class="new-side-note">Drawn from what you typed. Change one word and the seal changes. Once sealed, the market's seal also covers its deadline and number, and nothing in it can change.</p>
       </aside>
+    </div>
+    <section class="new-happens" aria-labelledby="happens-h">
+      <h2 class="new-happens-title" id="happens-h">What happens</h2>
+      <ol class="new-steps">
+        <li><span class="step-n" aria-hidden="true">1</span><p>The judge and two other models read your draft against today's source. Their answers are signed by secure hardware.</p></li>
+        <li><span class="step-n" aria-hidden="true">2</span><p>You seal it: the question, rules, source, judge and appeal panel go on NEAR as one hash.</p></li>
+        <li><span class="step-n" aria-hidden="true">3</span><p>Two minutes later the judge answers, and NEAR checks the signature and the quote.</p></li>
+        <li class="step-final"><span class="step-n" aria-hidden="true">4</span><p>After a two-minute appeal window the verdict is final, signed by NEAR Chain Signatures and recorded on Base Sepolia.</p></li>
+      </ol>
+    </section>
     </div>`;
   const form = document.getElementById('new');
   const $ = (id) => document.getElementById(id);
@@ -1094,7 +1096,13 @@ function newMarket() {
   let checked = null;
   const redraw = async () => {
     const d = draft();
-    $('draft-seal').innerHTML = seal(`0x${await sha256(JSON.stringify(d))}`, { state: 'open', size: 200 });
+    const hash = `0x${await sha256(JSON.stringify(d))}`, box = $('draft-seal');
+    if (!box) return; // the visitor left the page while the hash was being computed
+    box.innerHTML = turningSeal(hash);
+    box.classList.remove('fs-press');
+    void box.offsetWidth; // restart the press
+    box.classList.add('fs-press');
+    $('draft-hash').textContent = hash;
     if (checked && checked !== JSON.stringify(d)) { $('seal-btn').disabled = true; checked = null; }
   };
   form.addEventListener('input', redraw);
@@ -1343,15 +1351,48 @@ async function docs(slug) {
   const seq = current;
   const html = await md(name);
   if (seq !== current) return;
+  const at = DOCS.findIndex(([s]) => s === name), prev = DOCS[at - 1], next = DOCS[at + 1];
+  const turn = (d, label) => (d ? `<a class="doc-turn" href="#/docs/${d[0]}"><span>${label}</span>${d[1]}</a>` : '<span></span>');
   app.innerHTML = `
     <div class="docs">
       <nav class="docs-nav" aria-label="Docs">
-        ${DOCS.map(([s, t]) => `<a href="#/docs/${s}"${s === name ? ' aria-current="page"' : ''}>${t}</a>`).join('')}
+        ${DOCS.map(([s, t], i) => `<a href="#/docs/${s}"${s === name ? ' aria-current="page"' : ''}><span class="docs-n" aria-hidden="true">${i + 1}</span>${t}</a>`).join('')}
         <a class="docs-src" href="${REPO}/tree/main/docs">Docs on GitHub</a>
       </nav>
-      <article class="doc">${html}</article>
+      <div class="doc-col">
+        <p class="doc-kicker">Docs, ${at + 1} of ${DOCS.length}</p>
+        <article class="doc">${html}</article>
+        <nav class="doc-pager" aria-label="More docs">${turn(prev, 'Before this')}${turn(next, 'Read next')}</nav>
+      </div>
+      <nav class="doc-toc" aria-label="On this page" hidden></nav>
     </div>`;
-  document.title = `${DOCS.find(([s]) => s === name)[1]} · Forseti docs`;
+  document.title = `${DOCS[at][1]} · Forseti docs`;
+  const doc = app.querySelector('.doc'), toc = app.querySelector('.doc-toc');
+  // Wide tables and code scroll sideways inside their own box, so the keyboard has to be able to reach them.
+  doc.querySelectorAll('pre, table').forEach((el) => (el.tabIndex = 0));
+  // The pager says what comes next, so the closing "Next: ..." line of the Markdown is not repeated.
+  if (next && /^Next:/.test(doc.lastElementChild?.textContent ?? '')) doc.lastElementChild.remove();
+  // On this page: the sections of the document. The address bar holds the route, so these scroll instead of linking.
+  const heads = [...doc.querySelectorAll('h2')];
+  if (heads.length > 1) {
+    toc.innerHTML = `<p>On this page</p>${heads.map((h, i) => `<button type="button" data-i="${i}">${esc(h.textContent)}</button>`).join('')}`;
+    toc.hidden = false;
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    toc.addEventListener('click', (e) => {
+      const i = e.target.closest('button')?.dataset.i;
+      if (i === undefined) return;
+      heads[i].scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+      heads[i].tabIndex = -1;
+      heads[i].focus({ preventScroll: true });
+    });
+    const mark = () => {
+      if (!toc.isConnected) return removeEventListener('scroll', mark);
+      const now = heads.findLastIndex((h) => h.getBoundingClientRect().top < 160);
+      toc.querySelectorAll('button').forEach((b, i) => (i === now ? b.setAttribute('aria-current', 'true') : b.removeAttribute('aria-current')));
+    };
+    addEventListener('scroll', mark, { passive: true });
+    mark();
+  }
 }
 
 async function roadmap() {
@@ -1365,8 +1406,15 @@ async function roadmap() {
     const sec = document.createElement('section');
     sec.className = `phase${i === 0 ? ' phase-done' : ''}`;
     h.before(sec);
-    sec.append(h);
+    // The horizon's number, its name and a seal in the state the work is in: final, proposed, or still open.
+    const head = document.createElement('div');
+    head.className = 'phase-head';
+    head.innerHTML = `<span class="step-n" aria-hidden="true">${i + 1}</span>${seal(HERO.hash, { state: i === 0 ? 'final' : i === 1 ? 'proposed' : 'open', size: 72, title: i === 0 ? 'Built' : i === 1 ? 'Next' : 'Later' })}`;
+    sec.append(head);
+    head.append(h);
+    if (i === 0) head.insertAdjacentHTML('beforeend', '<span class="fs-stamp fs-stamp-final">Built</span>');
     while (sec.nextSibling && sec.nextSibling.nodeName !== 'H2') sec.append(sec.nextSibling);
+    sec.querySelectorAll('li').forEach((li) => li.classList.add('rise'));
   });
 }
 
