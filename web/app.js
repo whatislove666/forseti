@@ -256,25 +256,33 @@ function deciding(m) {
 
 function answerBlock(m) {
   const r = deciding(m), agreed = m.phase === 'Final' ? panelFor(m, m.outcome).length : 0;
+  // The answer is the largest thing on the page; a longer word is set smaller so it stays on one line.
+  const big = (o, cls) => `<p class="fs-answer ${cls}${WORD[o].length > 3 ? ' fs-answer-long' : ''}">${WORD[o]}</p>`;
   let word, sentence = r?.reason ?? '';
   if (m.phase === 'Final') {
-    word = `<p class="fs-answer">${WORD[m.outcome]}</p>`;
+    word = big(m.outcome, 'fs-answer-final');
     if (agreed) sentence += agreed === 3 ? ' All three judges agreed on appeal.' : ` ${NUM[agreed]} of three judges agreed on appeal.`;
   } else if (m.phase === 'Proposed') {
-    word = `<p class="fs-answer">${WORD[m.proposed.outcome]}</p>`;
+    word = big(m.proposed.outcome, 'fs-answer-proposed');
   } else {
     word = `<p class="fs-answer fs-answer-pending">${m.phase === 'Disputed' ? 'Before the panel' : 'Not decided yet'}</p>`;
     if (r) sentence = `Asked ${rel(ms(r.at))}, the judge said ${WORD[r.outcome].toLowerCase()}: ${r.reason}`;
   }
   return `
     <div class="fs-verdict">
-      <div id="market-seal">${seal(m.commitment_hash, { state: sealState(m), size: 112 })}</div>
-      <div class="fs-stack">
-        ${stamp(m)}
-        <h1 class="fs-question">${esc(m.commitment.params.question)}</h1>
+      <div class="verdict-head">
+        <div class="fs-stack">
+          ${stamp(m)}
+          <h1 class="fs-question">${esc(m.commitment.params.question)}</h1>
+        </div>
+        <div id="market-seal">${seal(m.commitment_hash, { state: sealState(m), size: 112 })}</div>
+      </div>
+      <div class="verdict-answer">
         ${word}
-        ${sentence ? `<p class="fs-plain">${esc(sentence)}</p>` : ''}
-        <span class="fs-when">${esc(when(m))}</span>
+        <div class="verdict-said">
+          ${sentence ? `<p class="fs-plain">${esc(sentence)}</p>` : ''}
+          <span class="fs-when">${esc(when(m))}</span>
+        </div>
       </div>
     </div>
     ${r?.quote ? evidence(m, r) : ''}`;
@@ -658,28 +666,54 @@ async function register() {
       <li><a class="fs-market" href="#/m/${m.commitment.id}">
         ${seal(m.commitment_hash, { state: sealState(m), size: 40 })}
         <span class="fs-market-body"><span class="fs-market-q">${esc(m.commitment.params.question)}</span>${o ? originLine(m, o) : pmLink(m) ? '<span class="origin">Copied from Polymarket.</span>' : ''}</span>
-        <span class="fs-market-meta">${stamp(m)}<span class="fs-when">${esc(when(m))}</span></span>
+        <span class="fs-market-meta">${verdict(m)}</span>
       </a></li>`;
   };
-  const group = (title, text, list) => (list.length ? `
-    <section class="reg-group">
-      <div class="reg-group-head"><h2 class="section-title">${title} <span class="reg-count">${list.length}</span></h2><p class="fs-plain fs-muted">${text}</p></div>
+  // A final market shows its answer as a word; one still running shows its status stamp.
+  const verdict = (m) => (m.phase === 'Final'
+    ? `<span class="reg-word${WORD[m.outcome].length > 3 ? ' reg-word-long' : ''}">${WORD[m.outcome]}</span><span class="fs-when">Final${overturned(m) ? ', overturned on appeal' : ''}. ${esc(when(m))}</span>`
+    : `${stamp(m)}<span class="fs-when">${esc(when(m))}</span>`);
+  const groups = [];
+  const group = (key, title, text, list) => {
+    if (!list.length) return '';
+    groups.push([key, title, list.length]);
+    return `
+    <section class="reg-group" id="reg-${key}" tabindex="-1" aria-labelledby="reg-${key}-h">
+      <div class="reg-group-head"><h2 class="reg-title rise" id="reg-${key}-h">${title} <span class="reg-count">${list.length}</span></h2><p class="page-lede">${text}</p></div>
       <ul class="fs-register">${list.map(row).join('')}</ul>
-    </section>` : '');
+    </section>`;
+  };
   // Team markets on real prices that close during judging (16-18 Nov 2026) are decided live.
   const kind = (m) => (byHash.get(m.commitment_hash)?.contested ? 'disputed' : byHash.has(m.commitment_hash) ? 'replay' : m.commitment.creator === RELAY ? 'visitor' : ms(m.commitment.params.resolve_after) > Date.UTC(2026, 10, 15) && ms(m.commitment.params.resolve_after) < Date.UTC(2026, 10, 19) ? 'live' : 'demo');
   const platforms = [...new Set(origins.map((o) => o.platform))].join(' and ');
+  const finals = markets.filter((m) => m.phase === 'Final');
+  const differ = finals.filter((m) => { const o = byHash.get(m.commitment_hash); return o && !o.note_short && !sameOutcome(m, o); }).length;
+  const stat = (n, label) => `<div><dt>${label}</dt><dd>${n}</dd></div>`;
+  const stats = `<dl class="reg-stats">${stat(markets.length, markets.length === 1 ? 'market sealed' : 'markets sealed')}${stat(finals.length, 'final')}${stat(finals.filter(overturned).length, 'overturned on appeal')}${differ ? stat(differ, 'where the judge and the platform differ') : ''}</dl>`;
   app.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">Markets</h1>
       <p class="page-lede">Every market here has its judge sealed on NEAR before it was decided. Open one to see the answer, how it was decided, and to check every step yourself.</p>
     </div>
-    ${group('Deciding live', 'Markets on real prices that close during judging, 16 to 18 November. Each is decided by its sealed judge on schedule, and you can ask the judge today how it reads the source.', markets.filter((m) => kind(m) === 'live'))}
-    ${group('Disputed on their platform', 'Markets whose official outcome was fought over, sealed again here and judged from public sources, next to what the platform decided.', markets.filter((m) => kind(m) === 'disputed'))}
-    ${group('Replays of real markets', `Markets that already settled${platforms ? ` on ${esc(platforms)}` : ''}, sealed again with the same question and judged by Forseti. Each links to the original.`, markets.filter((m) => kind(m) === 'replay'))}
-    ${group('Sealed by visitors', 'Markets that people wrote and sealed from this site. Each closed two minutes after sealing.', markets.filter((m) => kind(m) === 'visitor'))}
-    ${group('Demos', 'Markets made to show each path: a verdict upheld on appeal, a forged verdict overturned by the panel, and one still open where you can ask the judge.', markets.filter((m) => kind(m) === 'demo'))}
+    ${stats}
+    <nav class="reg-jump" aria-label="Groups of markets"></nav>
+    ${group('live', 'Deciding live', 'Markets on real prices that close during judging, 16 to 18 November. Each is decided by its sealed judge on schedule, and you can ask the judge today how it reads the source.', markets.filter((m) => kind(m) === 'live'))}
+    ${group('disputed', 'Disputed on their platform', 'Markets whose official outcome was fought over, sealed again here and judged from public sources, next to what the platform decided.', markets.filter((m) => kind(m) === 'disputed'))}
+    ${group('replays', 'Replays of real markets', `Markets that already settled${platforms ? ` on ${esc(platforms)}` : ''}, sealed again with the same question and judged by Forseti. Each links to the original.`, markets.filter((m) => kind(m) === 'replay'))}
+    ${group('visitors', 'Sealed by visitors', 'Markets that people wrote and sealed from this site. Each closed two minutes after sealing.', markets.filter((m) => kind(m) === 'visitor'))}
+    ${group('demos', 'Demos', 'Markets made to show each path: a verdict upheld on appeal, a forged verdict overturned by the panel, and one still open where you can ask the judge.', markets.filter((m) => kind(m) === 'demo'))}
     <p class="register-note">${markets.length} markets on ${CONTRACT}. Each seal is drawn from the market's commitment, so it changes if the rules do.</p>`;
+  // Jump to a group. The address bar holds the route, so these scroll instead of linking.
+  const jump = app.querySelector('.reg-jump');
+  if (groups.length > 1) {
+    jump.innerHTML = groups.map(([key, title, n]) => `<button type="button" data-to="reg-${key}">${title} <span>${n}</span></button>`).join('');
+    jump.addEventListener('click', (e) => {
+      const to = document.getElementById(e.target.closest('button')?.dataset.to ?? '');
+      if (!to) return;
+      to.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+      to.focus({ preventScroll: true });
+    });
+  } else jump.remove();
 }
 
 // ---------- market ----------
@@ -729,6 +763,7 @@ async function market(id) {
         ${open ? askPanel() : ''}
       </aside>
     </div>`;
+  document.querySelector('#market-seal svg')?.classList.add('fs-press');
   document.getElementById('verify').addEventListener('click', (e) => verify(shown, attestCache, e.target));
   document.getElementById('details').addEventListener('click', (e) => {
     const on = document.getElementById('checks').classList.toggle('show-details');
