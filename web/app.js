@@ -220,6 +220,8 @@ function expectedOutcome(m) {
 }
 
 const beforeDeadline = (m) => Date.now() < ms(m.commitment.params.resolve_after);
+// Real questions run from a few words to a full sentence with dates; the longer ones are set smaller.
+const qSize = (q) => (q.length > 120 ? ' q-long' : q.length > 60 ? ' q-mid' : '');
 const overturned = (m) => m.phase === 'Final' && m.proposed && m.proposed.outcome !== m.outcome;
 const panelFor = (m, o) => m.panel_votes.filter((v) => v && v.outcome === o);
 
@@ -273,7 +275,7 @@ function answerBlock(m) {
       <div class="verdict-head">
         <div class="fs-stack">
           ${stamp(m)}
-          <h1 class="fs-question">${esc(m.commitment.params.question)}</h1>
+          <h1 class="fs-question${qSize(m.commitment.params.question)}">${esc(m.commitment.params.question)}</h1>
         </div>
         <div id="market-seal">${seal(m.commitment_hash, { state: sealState(m), size: 112 })}</div>
       </div>
@@ -611,7 +613,7 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
     sec.innerHTML = `
       <div class="band-inner">
         <p class="band-label">Market ${id}, a replay of a disputed ${esc(o.platform)} market</p>
-        <h2 class="land-h2 rise">“${esc(featured.commitment.params.question)}”</h2>
+        <h2 class="land-h2 rise${qSize(featured.commitment.params.question)}">“${esc(featured.commitment.params.question)}”</h2>
         <dl class="duel">
           <div><dt>${esc(o.platform)} resolved it</dt>${big(o.platform_outcome)}</div>
           <div class="duel-forseti"><dt>The sealed judge said</dt>${big(WORD[featured.outcome])}</div>

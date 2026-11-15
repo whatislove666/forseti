@@ -82,6 +82,8 @@ main.wide + .foot { border-top: 0; }
 .verdict-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: start; }
 .verdict-head .fs-stack { gap: var(--space-6); }
 .fs-verdict .fs-question { font: 400 clamp(34px, 4.6vw, 68px)/1 var(--font-display); letter-spacing: -0.03em; }
+.fs-verdict .fs-question.q-mid { font-size: clamp(28px, 2.9vw, 44px); line-height: 1.04; letter-spacing: -0.025em; }
+.fs-verdict .fs-question.q-long { font-size: clamp(24px, 2.3vw, 34px); line-height: 1.1; letter-spacing: -0.02em; }
 #market-seal svg { width: clamp(96px, 14vw, 200px); height: auto; }
 .verdict-answer { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 24px 56px; }
 .fs-verdict .fs-answer { font: 500 clamp(110px, 17vw, 240px)/0.8 var(--font-display); letter-spacing: -0.05em; }
@@ -280,6 +282,8 @@ main.wide + .foot { border-top: 0; }
 
 /* A disputed market where the sealed judge and the platform disagree */
 #featured .land-h2 { max-width: 1100px; font-size: clamp(36px, 5.6vw, 88px); }
+#featured .land-h2.q-mid { font-size: clamp(30px, 4vw, 60px); line-height: 1; }
+#featured .land-h2.q-long { font-size: clamp(26px, 3vw, 44px); line-height: 1.05; letter-spacing: -0.02em; }
 .duel { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 64px; }
 .duel > div { border-top: 1px solid var(--line-strong); padding: 24px 0 40px; }
 .duel dt { font: 400 16px/25px var(--font-sans); color: var(--ink-muted); }
@@ -300,7 +304,7 @@ main.wide + .foot { border-top: 0; }
 .story-text { margin: 0; max-width: 640px; font: 400 18px/29px var(--font-sans); color: var(--ink-muted); }
 .story-link { font: 600 15px/20px var(--font-sans); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
 .story:hover .story-link { text-decoration-color: var(--ink); }
-.live { margin: 40px 0 0; font: 400 15px/22px var(--font-sans); color: var(--ink-muted); }
+#proof .live { margin: 40px 0 0; font: 400 15px/22px var(--font-sans); color: var(--ink-muted); }
 
 /* Checked in your browser: the gold thread, at reading size */
 .checks { display: flex; flex-wrap: wrap; gap: 56px 96px; }
@@ -391,6 +395,10 @@ main.wide + .foot { border-top: 0; }
 .fs-press { animation: fs-press 240ms ease-out; }
 @media (prefers-reduced-motion: reduce) { .fs-press { animation: none; } }
 
+@media (max-width: 1180px) {
+  .case { grid-template-columns: minmax(0, 1fr); gap: 56px; }
+  .case-side { position: static; max-height: none; overflow: visible; }
+}
 @media (max-width: 900px) {
   .docs { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
   .docs-nav { position: static; display: flex; gap: var(--space-2); overflow-x: auto; }
@@ -400,8 +408,6 @@ main.wide + .foot { border-top: 0; }
   .phase-head { position: static; }
   .page-head { margin-bottom: 40px; }
   .fit { grid-template-columns: 1fr; gap: var(--space-8); }
-  .case { grid-template-columns: minmax(0, 1fr); gap: 56px; }
-  .case-side { position: static; max-height: none; overflow: visible; }
   .hero { padding-bottom: 72px; }
   .hero-seal { width: min(100%, 420px, max(56vh, 240px)); }
   .band-inner, .wrap { padding-block: 72px; }
