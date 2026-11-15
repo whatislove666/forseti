@@ -365,77 +365,110 @@ function storyHtml(story) {
       </a>`;
 }
 
+// The design system draws a seal as one SVG. The landing turns and fades its parts separately, so it
+// stacks copies of the seal that each keep one part.
+const PART = {
+  edge: (el) => el.tagName === 'line' || ['47.5', '37'].includes(el.getAttribute('r')),
+  ring: (el) => el.tagName === 'path' && el.getAttribute('fill') === 'none',
+  inner: (el) => el.getAttribute('r') === '25.5',
+  seats: (el) => el.getAttribute('r') === '2.6',
+  letter: (el) => el.tagName === 'path' && el.getAttribute('fill') === 'currentColor',
+  disc: (el) => el.classList.contains('fs-seal-disc'),
+};
+function sealLayer(hash, state, parts, cls) {
+  const t = document.createElement('template');
+  t.innerHTML = seal(hash, { state });
+  const svg = t.content.firstElementChild;
+  svg.querySelectorAll('circle, line, path').forEach((el) => parts.some((p) => PART[p](el)) || el.remove());
+  for (const a of ['width', 'height', 'role', 'aria-label']) svg.removeAttribute(a);
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('class', `fs-seal ${cls}`);
+  return svg.outerHTML;
+}
+const turningSeal = (hash) => sealLayer(hash, 'open', ['edge'], 'seal-edge') + sealLayer(hash, 'open', ['ring'], 'seal-ring') + sealLayer(hash, 'open', ['inner', 'letter'], 'seal-core');
+
 async function landing() {
   const heroHash = HERO.hash;
   const n = (k, one, many) => `${k} ${k === 1 ? one : many}`;
-  const row = (num, title, text, art, final = false) => `
-      <li class="reg-row">
-        <span class="reg-n${final ? ' reg-n-final' : ''}">${num}</span>
-        <h3 class="reg-title">${title}</h3>
-        <p class="reg-text">${text}</p>
-        <div class="reg-art">${art}</div>
-      </li>`;
+  const step = (num, title, text, art, final = false) => `
+        <li class="step s${num}${final ? ' step-final' : ''}">
+          <span class="step-n" aria-hidden="true">${num}</span>
+          <div class="step-body">
+            <h3 class="step-title">${title}</h3>
+            <p class="step-text">${text}</p>
+          </div>
+          <div class="step-art">${art}</div>
+        </li>`;
+  const ribbon = `<span>model · instructions · sources · seed · appeal panel of three · deadline · <b class="ribbon-hash">${heroHash}</b> · sealed before trading · checked by anyone ·</span>`;
   app.innerHTML = `
     <section class="hero" id="top">
-      <div class="hero-seal" id="hero-seal" aria-hidden="true">${seal(heroHash, { state: 'open', size: 940 })}</div>
-      <div class="hero-inner"><div class="hero-copy">
-        <p class="hero-kicker">Sealed on NEAR. Checked by anyone.</p>
-        <h1 class="hero-title">The judge is sealed before the first trade.</h1>
-        <p class="hero-lede">Forseti fixes a prediction market's AI judge before trading starts: the model, its instructions, its sources and the three judges who hear appeals. After the deadline NEAR checks that this exact judge answered this exact question. Then anyone can check it again.</p>
-        <div class="hero-actions">
-          <a class="btn-light" href="#/new">Seal a market</a>
-          <a class="fs-btn fs-btn-quiet" href="#/markets">Verify a market</a>
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <p class="hero-kicker">Sealed on NEAR. Checked by anyone.</p>
+          <h1 class="hero-title"><span>The judge</span> <span>is <em>sealed</em></span> <span>before the</span> <span>first trade.</span></h1>
+          <p class="hero-lede">Forseti fixes a prediction market's AI judge before trading starts: the model, its instructions, its sources and the three judges who hear appeals. After the deadline NEAR checks that this exact judge answered this exact question. Then anyone can check it again.</p>
+          <div class="hero-actions">
+            <a class="pill pill-ink" href="#/new">Seal a market</a>
+            <a class="pill pill-quiet" href="#/markets">Verify a market</a>
+          </div>
         </div>
-        <p class="hero-note" id="hero-note">The seal of market ${HERO.id}, drawn from its rules. Change one rule and the seal changes.</p>
-      </div></div>
+        <div class="hero-side">
+          <div class="seal-stack hero-seal" id="hero-seal" aria-hidden="true">${turningSeal(heroHash)}</div>
+          <div class="hero-try">
+            <label class="hero-note" for="hero-rule" id="hero-note">The seal of market ${HERO.id}, drawn from its rules. Change one word and the seal changes. Try it:</label>
+            <input class="fs-input hero-rule" id="hero-rule" type="text" autocomplete="off" spellcheck="false" placeholder="Yes if Berlin is above 3 °C at noon">
+            <code class="hero-hash" id="hero-hash">${heroHash}</code>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section class="band band-wine" aria-labelledby="problem">
-      <div class="band-inner band-split">
-        <div class="band-main">
+    <div class="ribbon" aria-hidden="true"><div class="ribbon-run">${ribbon.repeat(4)}</div></div>
+
+    <section class="band band-wax" aria-labelledby="problem">
+      <div class="band-inner problem">
+        <div class="problem-figure">
           <p class="band-label">The problem</p>
-          <h2 class="band-statement" id="problem">On Polymarket, disputes are settled by a vote of UMA token holders, and many of the voters trade on the same platform.</h2>
-          <p class="band-side">An AI judge is faster and cheaper, but only if you can tell which model answered, what it was asked and what it read.</p>
+          <p class="problem-n swell">60%</p>
           <p class="band-source">At least 60% of active UMA voters over the past year could be linked to Polymarket trading accounts. <a href="https://thecurrency.news/articles/227498/the-mysterious-crypto-judges-who-settle-polymarket-disputes/">The Wall Street Journal, May 2026</a></p>
         </div>
-        <figure class="band-quote">
-          <blockquote>“The model doesn't have to be perfect; it has to be predictable.”</blockquote>
-          <figcaption>Andrew Hall, a16z, <a href="https://a16zfrontier.com/posts/article/ai-judges-scale-prediction-markets/">“How AI judges can scale prediction markets”</a>, January 2026</figcaption>
-        </figure>
+        <div class="problem-copy">
+          <h2 class="band-statement rise" id="problem">On Polymarket, disputes are settled by a vote of UMA token holders, and many of the voters trade on the same platform.</h2>
+          <p class="band-side rise">An AI judge is faster and cheaper, but only if you can tell which model answered, what it was asked and what it read.</p>
+          <figure class="band-quote rise">
+            <blockquote>“The model doesn't have to be perfect; it has to be predictable.”</blockquote>
+            <figcaption>Andrew Hall, a16z, <a href="https://a16zfrontier.com/posts/article/ai-judges-scale-prediction-markets/">“How AI judges can scale prediction markets”</a>, January 2026</figcaption>
+          </figure>
+        </div>
       </div>
     </section>
 
     <section class="wrap" id="how">
-      <h2 class="land-h2">How a market is judged</h2>
-      <ol class="register-steps">
-        ${row(1, 'Sealed before trading', 'The creator fixes the AI judge, its instructions, its sources and an appeal panel of three. The seal is drawn from those rules, so they cannot change quietly.', seal(heroHash, { state: 'open', size: 140 }))}
-        ${row(2, 'Ask the judge first', "Before you trade, run the sealed judge on today's sources and read its signed answer. No surprises at the deadline.", '<code class="chip">"temperature_2m":6.2</code>')}
-        ${row(3, 'Judged and checked on NEAR', 'The judge answers on secure hardware and signs what it was asked and what it said. The contract rebuilds the question, checks the signature and finds the quoted evidence in the source.', seal(heroHash, { state: 'proposed', size: 140 }))}
-        ${row(4, 'Appealed, then final everywhere', 'Anyone who disagrees posts a bond and three judges decide by majority. The final answer is signed once by NEAR Chain Signatures and accepted on any EVM chain. Live on Base Sepolia.', seal(heroHash, { state: 'final', size: 140 }), true)}
-      </ol>
-    </section>
-
-    <section class="wrap fit" aria-labelledby="fit">
-      <div class="fit-copy">
-        <h2 class="land-h2" id="fit">Plug it into any prediction market</h2>
-        <p class="fit-lede">Forseti only decides outcomes. Your market keeps its own trading, custody and payouts, on any EVM chain, and reads one answer at the end.</p>
-        <ol class="fit-steps">
-          <li><strong>Seal the judge when you list the market.</strong> You get a commitment hash that changes if any rule changes.</li>
-          <li><strong>Keep the hash next to your market.</strong> Traders can check that the rules they bet on are the sealed ones.</li>
-          <li><strong>Read the verdict on your chain.</strong> After the deadline anyone relays it, and your contract pays out. Invalid refunds every stake.</li>
+      <h2 class="land-h2 rise">How a market is <em>judged</em></h2>
+      <div class="how-track">
+        <div class="how-stick" aria-hidden="true">
+          <div class="seal-stack how-seal">
+            ${sealLayer(heroHash, 'final', ['disc'], 'in-final')}
+            ${sealLayer(heroHash, 'open', ['edge'], 'seal-edge')}
+            ${sealLayer(heroHash, 'open', ['ring'], 'seal-ring')}
+            ${sealLayer(heroHash, 'open', ['inner'], 'out-s3')}
+            <span class="out-s4">${sealLayer(heroHash, 'proposed', ['inner'], 'in-s3')}</span>
+            <span class="out-final">${sealLayer(heroHash, 'disputed', ['seats'], 'in-s4')}</span>
+            ${sealLayer(heroHash, 'open', ['inner'], 'in-s4')}
+            ${sealLayer(heroHash, 'open', ['letter'], 'seal-core')}
+          </div>
+          <span class="out-s3"><code class="chip in-s2">"temperature_2m":6.2</code></span>
+        </div>
+        <ol class="steps">
+          ${step(1, 'Sealed before trading', 'The creator fixes the AI judge, its instructions, its sources and an appeal panel of three. The seal is drawn from those rules, so they cannot change quietly.', seal(heroHash, { state: 'open', size: 140 }))}
+          ${step(2, 'Ask the judge first', "Before you trade, run the sealed judge on today's sources and read its signed answer. No surprises at the deadline.", '<code class="chip">"temperature_2m":6.2</code>')}
+          ${step(3, 'Judged and checked on NEAR', 'The judge answers on secure hardware and signs what it was asked and what it said. The contract rebuilds the question, checks the signature and finds the quoted evidence in the source.', seal(heroHash, { state: 'proposed', size: 140 }))}
+          ${step(4, 'Appealed, then final everywhere', 'Anyone who disagrees posts a bond and three judges decide by majority. The final answer is signed once by NEAR Chain Signatures and accepted on any EVM chain. Live on Base Sepolia.', seal(heroHash, { state: 'final', size: 140 }), true)}
         </ol>
-        <a class="fs-btn fs-btn-quiet" href="#/docs/integrate">Read the integration guide</a>
       </div>
-      <figure class="fit-code">
-        <figcaption>Settling a market on any EVM chain</figcaption>
-        <pre><code>IForseti.Outcome o = forseti.verdictOf(commitmentHash).outcome;
-
-if (o == IForseti.Outcome.Yes) payYes();
-else if (o == IForseti.Outcome.No) payNo();
-else if (o == IForseti.Outcome.Invalid) refundEveryone();
-// None: no verdict yet, keep waiting</code></pre>
-      </figure>
     </section>
+
+    <section class="band band-raised" id="featured" hidden></section>
 
     <section class="wrap" id="proof">
       <div id="story"></div>
@@ -443,37 +476,65 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
     </section>
 
     <section class="wrap" id="disputes" aria-labelledby="disputes-h" hidden>
-      <h2 class="land-h2" id="disputes-h">Disputed markets, judged again</h2>
+      <h2 class="land-h2 rise" id="disputes-h">Disputed markets, judged <em>again</em></h2>
       <p class="fit-lede">Real markets whose outcome was fought over, sealed on Forseti with the same question and judged from public sources. Open one to read the evidence and check every step.</p>
       <ul class="disputes"></ul>
     </section>
 
     <section class="wrap">
-      <div class="trust">
-        <div class="trust-checked">
-          <h3 class="trust-title trust-title-gold">Checked in your browser</h3>
+      <div class="checks">
+        <div class="checks-head">
+          <h2 class="land-h2 rise">Checked in <em class="em-gold">your</em> browser</h2>
+          <p class="fit-lede">Your browser re-checks every market against NEAR and Base Sepolia. There is no server to trust.</p>
+        </div>
+        <div class="thread">
+          <span class="thread-line grow" aria-hidden="true"></span>
           <ul>
-            <li>The rules are the ones sealed at creation</li>
-            <li>Each answer is signed by a registered key of the sealed model</li>
-            <li>It answered the exact question NEAR rebuilt</li>
-            <li>The evidence it quoted is really in the source</li>
-            <li>The final answer is signed once for every EVM chain, and Base Sepolia holds it</li>
+            <li class="rise">The rules are the ones sealed at creation</li>
+            <li class="rise">Each answer is signed by a registered key of the sealed model</li>
+            <li class="rise">It answered the exact question NEAR rebuilt</li>
+            <li class="rise">The evidence it quoted is really in the source</li>
+            <li class="rise">The final answer is signed once for every EVM chain, and Base Sepolia holds it</li>
           </ul>
         </div>
-        <div class="trust-assumed">
-          <h3 class="trust-title">Still trusted, for now</h3>
-          <ul>
-            <li>That someone is watching. A forged copy of a source can be contested during the appeal window, and a contested seat counts as Invalid, so forgery ends in a refund, not a payout.</li>
-            <li>That each registered key lives in secure hardware. Its attestation is checked before it is registered.</li>
-            <li>The secure hardware behind NEAR AI and the NEAR signing network.</li>
-            <li>The team that can still upgrade the testnet contract. It gets locked before mainnet.</li>
-          </ul>
+      </div>
+      <div class="trust-assumed">
+        <h3 class="trust-title">Still trusted, for now</h3>
+        <ul>
+          <li>That someone is watching. A forged copy of a source can be contested during the appeal window, and a contested seat counts as Invalid, so forgery ends in a refund, not a payout.</li>
+          <li>That each registered key lives in secure hardware. Its attestation is checked before it is registered.</li>
+          <li>The secure hardware behind NEAR AI and the NEAR signing network.</li>
+          <li>The team that can still upgrade the testnet contract. It gets locked before mainnet.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="band band-line" aria-labelledby="fit">
+      <div class="band-inner fit">
+        <div class="fit-copy">
+          <h2 class="land-h2 rise" id="fit">Plug it into any prediction market</h2>
+          <p class="fit-lede">Forseti only decides outcomes. Your market keeps its own trading, custody and payouts, on any EVM chain, and reads one answer at the end.</p>
+          <ol class="fit-steps">
+            <li><strong>Seal the judge when you list the market.</strong> You get a commitment hash that changes if any rule changes.</li>
+            <li><strong>Keep the hash next to your market.</strong> Traders can check that the rules they bet on are the sealed ones.</li>
+            <li><strong>Read the verdict on your chain.</strong> After the deadline anyone relays it, and your contract pays out. Invalid refunds every stake.</li>
+          </ol>
+          <a class="pill pill-quiet" href="#/docs/integrate">Read the integration guide</a>
         </div>
+        <figure class="fit-code rise">
+          <figcaption>Settling a market on any EVM chain</figcaption>
+          <pre><code>IForseti.Outcome o = forseti.verdictOf(commitmentHash).outcome;
+
+if (o == IForseti.Outcome.Yes) payYes();
+else if (o == IForseti.Outcome.No) payNo();
+else if (o == IForseti.Outcome.Invalid) refundEveryone();
+// None: no verdict yet, keep waiting</code></pre>
+        </figure>
       </div>
     </section>
 
     <section class="wrap">
-      <h2 class="land-h2">Questions</h2>
+      <h2 class="land-h2 rise">Questions</h2>
       <dl class="faq">
         <dt>Who is Forseti for?</dt>
         <dd>Prediction markets on any EVM chain, or anywhere a secp256k1 signature can be checked. A market uses a Forseti judge instead of a token vote and reads the final answer from a small verifier contract. The demo market on Base Sepolia pays out this way.</dd>
@@ -488,17 +549,36 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
       </dl>
     </section>
 
-    <section class="band band-wax" id="cta">
-      <div class="band-inner band-cta">
-        <h2 class="cta-title">Seal a market and watch it get decided, in about five minutes.</h2>
-        <a class="btn-on-wax" href="#/new">Seal a market</a>
+    <section class="band band-wax cta" id="cta">
+      <div class="seal-stack cta-seal" aria-hidden="true">${sealLayer(heroHash, 'open', ['edge', 'ring'], 'seal-edge')}</div>
+      <div class="band-inner">
+        <h2 class="cta-title rise">Seal a market and watch it get decided, in about <em>five minutes.</em></h2>
+        <div class="cta-row">
+          <a class="pill pill-on-wax" href="#/new">Seal a market</a>
+          <p>No wallet or key needed: a demo account pays the gas.</p>
+        </div>
       </div>
     </section>`;
-  document.querySelector('#hero-seal svg')?.classList.add('fs-press');
-  app.querySelectorAll('[data-scroll]').forEach((a) => a.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById(a.dataset.scroll).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  }));
+
+  // The hero seal shows a live market until the visitor types a rule; then it is drawn from their words.
+  const heroSeal = document.getElementById('hero-seal'), rule = document.getElementById('hero-rule');
+  let marketSeal = { id: HERO.id, hash: heroHash };
+  const drawHero = (hash, note) => {
+    heroSeal.innerHTML = turningSeal(hash);
+    heroSeal.classList.remove('fs-press');
+    void heroSeal.offsetWidth; // restart the press
+    heroSeal.classList.add('fs-press');
+    document.getElementById('hero-hash').textContent = hash;
+    document.getElementById('hero-note').textContent = note;
+    app.querySelectorAll('.ribbon-hash').forEach((el) => (el.textContent = hash));
+  };
+  const marketNote = () => `The seal of market ${marketSeal.id}, drawn from its rules. Change one word and the seal changes. Try it:`;
+  rule.addEventListener('input', async () => {
+    const text = rule.value;
+    if (!text.trim()) return drawHero(marketSeal.hash, marketNote());
+    const hash = `0x${await sha256(text)}`;
+    if (rule.value === text) drawHero(hash, 'A seal drawn from what you typed. Change one word and the seal changes.');
+  });
 
   const seq = current;
   let markets = null;
@@ -511,9 +591,30 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
   if (seq !== current) return;
   const byHash = new Map(origins.map((o) => [o.commitment_hash, o]));
   const disputed = markets.filter((m) => m.phase === 'Final' && byHash.get(m.commitment_hash)?.contested);
-  if (disputed.length) {
+  // The disputed market where the sealed judge and the platform disagree gets the page to itself.
+  const featured = disputed.find((m) => !sameOutcome(m, byHash.get(m.commitment_hash)));
+  if (featured) {
+    const o = byHash.get(featured.commitment_hash), id = featured.commitment.id;
+    const sec = document.getElementById('featured');
+    sec.innerHTML = `
+      <div class="band-inner">
+        <p class="band-label">Market ${id}, a replay of a disputed ${esc(o.platform)} market</p>
+        <h2 class="land-h2 rise">“${esc(featured.commitment.params.question)}”</h2>
+        <dl class="duel">
+          <div><dt>${esc(o.platform)} resolved it</dt><dd class="swell">${esc(o.platform_outcome)}</dd></div>
+          <div class="duel-forseti"><dt>The sealed judge said</dt><dd class="swell">${WORD[featured.outcome]}</dd></div>
+        </dl>
+        <div class="duel-foot">
+          <p>The judge read today's copy of its sources, so it knows how events turned out. A replay shows how a sealed judge reads the evidence, not what any oracle would have said on the day.</p>
+          <a class="pill pill-ink" href="#/m/${id}">Check market ${id} yourself</a>
+        </div>
+      </div>`;
+    sec.hidden = false;
+  }
+  const others = disputed.filter((m) => m !== featured);
+  if (others.length) {
     const sec = document.getElementById('disputes');
-    sec.querySelector('.disputes').innerHTML = disputed.map((m) => {
+    sec.querySelector('.disputes').innerHTML = others.map((m) => {
       const o = byHash.get(m.commitment_hash);
       return `
         <li><a class="dispute" href="#/m/${m.commitment.id}">
@@ -534,8 +635,8 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
   live.textContent = `On testnet now: ${n(markets.length, 'market', 'markets')} sealed${replayed ? `, ${replayed} of them replays of real markets` : ''}, ${finals} final, ${markets.filter(overturned).length} overturned on appeal. Read from the contract as this page loaded.`;
   const open = markets.find((m) => m.phase === 'Open' && beforeDeadline(m));
   if (open && open.commitment_hash !== HERO.hash) {
-    document.getElementById('hero-seal').innerHTML = seal(open.commitment_hash, { state: 'open', size: 940 });
-    document.getElementById('hero-note').textContent = `The seal of market ${open.commitment.id}, drawn from its rules. Change one rule and the seal changes.`;
+    marketSeal = { id: open.commitment.id, hash: open.commitment_hash };
+    if (!rule.value.trim()) drawHero(marketSeal.hash, marketNote());
   }
 }
 
