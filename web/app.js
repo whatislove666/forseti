@@ -523,7 +523,7 @@ async function landing() {
         </div>
         <figure class="fit-code rise">
           <figcaption>Settling a market on any EVM chain</figcaption>
-          <pre><code>IForseti.Outcome o = forseti.verdictOf(commitmentHash).outcome;
+          <pre tabindex="0"><code>IForseti.Outcome o = forseti.verdictOf(commitmentHash).outcome;
 
 if (o == IForseti.Outcome.Yes) payYes();
 else if (o == IForseti.Outcome.No) payNo();
@@ -564,6 +564,7 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
   const heroSeal = document.getElementById('hero-seal'), rule = document.getElementById('hero-rule');
   let marketSeal = { id: HERO.id, hash: heroHash };
   const drawHero = (hash, note) => {
+    if (!heroSeal.isConnected) return; // the visitor left the landing while a hash was being computed
     heroSeal.innerHTML = turningSeal(hash);
     heroSeal.classList.remove('fs-press');
     void heroSeal.offsetWidth; // restart the press
@@ -592,7 +593,10 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
   const byHash = new Map(origins.map((o) => [o.commitment_hash, o]));
   const disputed = markets.filter((m) => m.phase === 'Final' && byHash.get(m.commitment_hash)?.contested);
   // The disputed market where the sealed judge and the platform disagree gets the page to itself.
-  const featured = disputed.find((m) => !sameOutcome(m, byHash.get(m.commitment_hash)));
+  // Only when the platform's outcome is a plain verdict: a settlement price is not a word to set large.
+  const plain = (o) => Object.values(WORD).includes(o.platform_outcome);
+  const featured = disputed.find((m) => plain(byHash.get(m.commitment_hash)) && !sameOutcome(m, byHash.get(m.commitment_hash)));
+  const big = (word) => `<dd class="swell${word.length > 3 ? ' duel-long' : ''}">${esc(word)}</dd>`;
   if (featured) {
     const o = byHash.get(featured.commitment_hash), id = featured.commitment.id;
     const sec = document.getElementById('featured');
@@ -601,8 +605,8 @@ else if (o == IForseti.Outcome.Invalid) refundEveryone();
         <p class="band-label">Market ${id}, a replay of a disputed ${esc(o.platform)} market</p>
         <h2 class="land-h2 rise">“${esc(featured.commitment.params.question)}”</h2>
         <dl class="duel">
-          <div><dt>${esc(o.platform)} resolved it</dt><dd class="swell">${esc(o.platform_outcome)}</dd></div>
-          <div class="duel-forseti"><dt>The sealed judge said</dt><dd class="swell">${WORD[featured.outcome]}</dd></div>
+          <div><dt>${esc(o.platform)} resolved it</dt>${big(o.platform_outcome)}</div>
+          <div class="duel-forseti"><dt>The sealed judge said</dt>${big(WORD[featured.outcome])}</div>
         </dl>
         <div class="duel-foot">
           <p>The judge read today's copy of its sources, so it knows how events turned out. A replay shows how a sealed judge reads the evidence, not what any oracle would have said on the day.</p>
