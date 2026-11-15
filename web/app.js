@@ -1080,7 +1080,6 @@ async function api(path, body) {
 const EMPTY_HASH = '0x'.padEnd(66, '0');
 function newMarket() {
   app.innerHTML = `
-    <div class="new-page">
     <div class="page-head">
       <h1 class="page-title">Seal a <em>market</em></h1>
       <p class="page-lede">Write a question and its rules, or start from a market on Polymarket. Three sealed judges read your wording first, then you seal it on NEAR testnet. Trading closes two minutes later, and you watch the judge decide on secure hardware, NEAR check the answer and Base Sepolia receive it. No wallet or key needed: a demo account pays the gas.</p>
@@ -1120,8 +1119,7 @@ function newMarket() {
         <li><span class="step-n" aria-hidden="true">3</span><p>Two minutes later the judge answers, and NEAR checks the signature and the quote.</p></li>
         <li class="step-final"><span class="step-n" aria-hidden="true">4</span><p>After a two-minute appeal window the verdict is final, signed by NEAR Chain Signatures and recorded on Base Sepolia.</p></li>
       </ol>
-    </section>
-    </div>`;
+    </section>`;
   const form = document.getElementById('new');
   const $ = (id) => document.getElementById(id);
   const out = $('new-out');
